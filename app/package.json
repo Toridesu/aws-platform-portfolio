@@ -1,0 +1,18 @@
+{
+  "name": "aws-platform-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Small API used for an AWS ECS/Fargate Terraform portfolio.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "helmet": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
