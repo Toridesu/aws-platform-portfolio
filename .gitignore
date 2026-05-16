@@ -4,6 +4,13 @@ node_modules/
 !.env.example
 npm-debug.log*
 
+# 作業手順・学習ログ系MarkdownはGit管理しない
+docs/*setup*.md
+docs/*command-log*.md
+docs/*work-log*.md
+docs/*procedure*.md
+docs/*手順*.md
+
 .terraform/
 *.tfstate
 *.tfstate.*
