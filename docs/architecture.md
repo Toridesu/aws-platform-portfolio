@@ -6,7 +6,9 @@
 
 現在はPhase 2として、AWSネットワークの土台をTerraformで定義しています。
 
-まだECS、ALB、RDS、WAF、GuardDutyなどは作成していません。
+現在は、ネットワーク、Security Group、ECR、ECS/Fargate、ALBの土台をTerraformで定義しています。
+
+RDS、WAF、GuardDutyなどはまだ作成していません。
 
 ## ネットワーク構成
 
@@ -151,13 +153,68 @@ infra/
       main.tf
       variables.tf
       outputs.tf
+    security/
+      main.tf
+      variables.tf
+      outputs.tf
+    ecs/
+      main.tf
+      variables.tf
+      outputs.tf
 ```
 
 `environments/dev` は、dev環境固有の値やprovider設定を持ちます。
 
 `modules/network` は、VPCやSubnetなどの再利用可能なネットワーク定義を持ちます。
 
+`modules/security` は、ALB用Security GroupとECS Task用Security Groupを持ちます。
+
+`modules/ecs` は、ECR、CloudWatch Logs、ECS Cluster、Task Definition、ECS Service、ALB、Target Group、Listenerを持ちます。
+
 この分割により、将来的に `stg` や `prod` を追加する場合でも、同じmoduleを再利用できます。
+
+## ECS / ALB構成
+
+ECS / ALBの構成は以下です。
+
+```text
+Internet
+  |
+  | HTTP :80
+  v
+Application Load Balancer
+  |
+  | HTTP :3000
+  v
+ECS Service
+  |
+  v
+Fargate Task
+```
+
+ALBはPublic Subnetに配置します。
+
+ECS TaskはPrivate Subnetに配置します。
+
+Task Definitionでは、ECRの `latest` タグのイメージを参照します。
+
+```text
+ECR Repository URL: <repository_url>:latest
+Container Port: 3000
+Health Check Path: /health
+```
+
+## 現時点のECS desired_count
+
+dev環境では、ECS Serviceの `desired_count` をデフォルトで `0` にしています。
+
+理由:
+
+- まだECRにDockerイメージをpushしていないため
+- Private SubnetからECRやCloudWatch Logsへ出るためのNAT GatewayまたはVPC Endpointをまだ作っていないため
+- 不要なFargate起動コストを避けるため
+
+今後、ECRへDockerイメージをpushし、Private Subnetのアウトバウンド経路を設計した後に `desired_count = 1` へ変更します。
 
 ## terraform planで確認した作成予定
 

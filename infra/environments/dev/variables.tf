@@ -39,3 +39,9 @@ variable "private_subnets" {
   type        = list(string)
   default     = ["10.0.10.0/24", "10.0.11.0/24"]
 }
+
+variable "ecs_desired_count" {
+  description = "Number of ECS tasks to run. Keep 0 until ECR image and private subnet egress are ready."
+  type        = number
+  default     = 0
+}

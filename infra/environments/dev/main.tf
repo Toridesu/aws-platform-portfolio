@@ -40,3 +40,18 @@ module "security" {
   vpc_id         = module.network.vpc_id
   container_port = 3000
 }
+
+module "ecs" {
+  source = "../../modules/ecs"
+
+  project_name          = var.project_name
+  environment           = var.environment
+  aws_region            = var.aws_region
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.public_subnet_ids
+  private_subnet_ids    = module.network.private_subnet_ids
+  alb_security_group_id = module.security.alb_security_group_id
+  ecs_security_group_id = module.security.ecs_security_group_id
+  container_port        = 3000
+  desired_count         = var.ecs_desired_count
+}
