@@ -31,3 +31,12 @@ module "network" {
   public_subnets     = var.public_subnets
   private_subnets    = var.private_subnets
 }
+
+module "security" {
+  source = "../../modules/security"
+
+  project_name   = var.project_name
+  environment    = var.environment
+  vpc_id         = module.network.vpc_id
+  container_port = 3000
+}
