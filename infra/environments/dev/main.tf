@@ -41,6 +41,18 @@ module "security" {
   container_port = 3000
 }
 
+module "endpoints" {
+  source = "../../modules/endpoints"
+
+  project_name                   = var.project_name
+  environment                    = var.environment
+  aws_region                     = var.aws_region
+  vpc_id                         = module.network.vpc_id
+  private_subnet_ids             = module.network.private_subnet_ids
+  private_route_table_ids        = module.network.private_route_table_ids
+  vpc_endpoint_security_group_id = module.security.vpc_endpoint_security_group_id
+}
+
 module "ecs" {
   source = "../../modules/ecs"
 

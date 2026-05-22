@@ -79,9 +79,35 @@ ECS Security Group -> 0.0.0.0/0 all traffic
 
 今後の改善:
 
-- ECR、CloudWatch Logs、Secrets Manager向けにVPC Endpointを使う
 - 必要な通信先に応じてECSのアウトバウンドを絞る
 - HTTPS化後はALBのインバウンドをTCP 443中心にする
+
+## VPC Endpoint Security Group
+
+Interface VPC Endpoint用のSecurity Groupを追加しています。
+
+許可するインバウンド:
+
+```text
+ECS Security Group -> VPC Endpoint Security Group TCP 443
+```
+
+理由:
+
+- ECS TaskがECR API、ECR Docker、CloudWatch LogsへPrivateLink経由で通信するため
+- Endpoint側の入口をECS Taskに限定するため
+
+VPC EndpointはPrivate Subnet内のECS TaskがAWSサービスへ到達するための経路です。
+
+今回追加しているInterface Endpoint:
+
+```text
+ecr.api
+ecr.dkr
+logs
+```
+
+S3はGateway Endpointとして追加しています。ECRのイメージレイヤー取得にS3が関係するためです。
 
 ## 現時点で実装しないもの
 

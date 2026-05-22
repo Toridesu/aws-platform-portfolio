@@ -48,6 +48,24 @@ NAT Gatewayは時間課金とデータ処理課金があり、学習用環境で
 
 ECS TaskをPrivate Subnetで実際に起動する段階で、NAT GatewayとVPC Endpointを比較します。
 
+### VPC Endpoint
+
+ECRとCloudWatch LogsへPrivate Subnetから到達するため、Interface VPC Endpointを使います。
+
+Interface Endpointは時間課金が発生します。今回の構成では以下を作ります。
+
+```text
+ecr.api
+ecr.dkr
+logs
+```
+
+2AZに配置するため、Interface EndpointのENIは合計6個作成されます。
+
+S3 Gateway Endpointは時間課金がありません。
+
+短時間検証後は `terraform destroy` で削除します。
+
 ## クリーンアップ方針
 
 検証後は以下を実行します。

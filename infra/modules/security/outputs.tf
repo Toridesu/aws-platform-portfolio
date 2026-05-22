@@ -7,3 +7,8 @@ output "ecs_security_group_id" {
   description = "Security group ID for ECS tasks."
   value       = aws_security_group.ecs.id
 }
+
+output "vpc_endpoint_security_group_id" {
+  description = "Security group ID for interface VPC endpoints."
+  value       = aws_security_group.vpc_endpoint.id
+}

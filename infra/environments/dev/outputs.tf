@@ -23,6 +23,21 @@ output "ecs_security_group_id" {
   value       = module.security.ecs_security_group_id
 }
 
+output "vpc_endpoint_security_group_id" {
+  description = "Security group ID for interface VPC endpoints."
+  value       = module.security.vpc_endpoint_security_group_id
+}
+
+output "interface_endpoint_ids" {
+  description = "Interface VPC endpoint IDs."
+  value       = module.endpoints.interface_endpoint_ids
+}
+
+output "s3_gateway_endpoint_id" {
+  description = "S3 gateway VPC endpoint ID."
+  value       = module.endpoints.s3_gateway_endpoint_id
+}
+
 output "ecr_repository_url" {
   description = "ECR repository URL for the application image."
   value       = module.ecs.ecr_repository_url

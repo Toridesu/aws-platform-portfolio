@@ -6,7 +6,7 @@
 
 現在はPhase 2として、AWSネットワークの土台をTerraformで定義しています。
 
-現在は、ネットワーク、Security Group、ECR、ECS/Fargate、ALBの土台をTerraformで定義しています。
+現在は、ネットワーク、Security Group、VPC Endpoint、ECR、ECS/Fargate、ALBの土台をTerraformで定義しています。
 
 RDS、WAF、GuardDutyなどはまだ作成していません。
 
@@ -157,6 +157,10 @@ infra/
       main.tf
       variables.tf
       outputs.tf
+    endpoints/
+      main.tf
+      variables.tf
+      outputs.tf
     ecs/
       main.tf
       variables.tf
@@ -168,6 +172,8 @@ infra/
 `modules/network` は、VPCやSubnetなどの再利用可能なネットワーク定義を持ちます。
 
 `modules/security` は、ALB用Security GroupとECS Task用Security Groupを持ちます。
+
+`modules/endpoints` は、Private Subnet内のECS TaskがECRとCloudWatch Logsへ到達するためのVPC Endpointを持ちます。
 
 `modules/ecs` は、ECR、CloudWatch Logs、ECS Cluster、Task Definition、ECS Service、ALB、Target Group、Listenerを持ちます。
 
@@ -215,6 +221,26 @@ dev環境では、ECS Serviceの `desired_count` をデフォルトで `0` に�
 - 不要なFargate起動コストを避けるため
 
 今後、ECRへDockerイメージをpushし、Private Subnetのアウトバウンド経路を設計した後に `desired_count = 1` へ変更します。
+
+## VPC Endpoint構成
+
+ECS TaskはPrivate Subnetに配置するため、インターネットへ直接出られません。
+
+ECRからイメージをpullし、CloudWatch Logsへログを送るため、以下のVPC Endpointを定義しています。
+
+```text
+Interface Endpoint:
+  - ecr.api
+  - ecr.dkr
+  - logs
+
+Gateway Endpoint:
+  - s3
+```
+
+ECRのイメージレイヤー取得にはS3への到達が必要になるため、S3 Gateway Endpointも追加しています。
+
+Interface Endpointには専用Security Groupを付与し、ECS Task用Security GroupからのHTTPS通信のみ受ける設計です。
 
 ## terraform planで確認した作成予定
 
