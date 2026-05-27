@@ -11,6 +11,7 @@ docs/*work-log*.md
 docs/*procedure*.md
 docs/*手順*.md
 docs/phase*.md
+docs/phase/
 
 .terraform/
 *.tfstate
