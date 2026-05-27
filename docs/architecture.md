@@ -1,25 +1,73 @@
 # アーキテクチャ
 
-このドキュメントには、AWS構成、設計意図、採用した構成の理由、トレードオフをまとめます。
+このドキュメントでは、現在のAWS構成、設計意図、採用理由、トレードオフをまとめます。
 
-## 現在の対象範囲
+## 対象範囲
 
-現在はPhase 2として、AWSネットワークの土台をTerraformで定義しています。
+現在のTerraformでは、以下のAWS基盤を定義しています。
 
-現在は、ネットワーク、Security Group、VPC Endpoint、ECR、ECS/Fargate、ALBの土台をTerraformで定義しています。
+- VPC
+- Public Subnet
+- Private Subnet
+- Internet Gateway
+- Route Table
+- Security Group
+- VPC Endpoint
+- ECR
+- CloudWatch Logs
+- ECS Cluster
+- ECS Task Definition
+- ECS Service
+- Application Load Balancer
+- Target Group
+- Listener
+- ECS Task Execution Role
 
-RDS、WAF、GuardDutyなどはまだ作成していません。
+RDS、WAF、GuardDuty、Security Hub、HTTPS化、CI/CDはまだ未実装です。
+
+## 全体構成
+
+```text
+Internet
+  |
+  | HTTP :80
+  v
+Application Load Balancer
+  |
+  | HTTP :3000
+  v
+ECS Service
+  |
+  v
+Fargate Task
+  |
+  v
+Dockerized Node.js API
+```
+
+Dockerイメージの流れは以下です。
+
+```text
+Local Docker Build
+  |
+  v
+Amazon ECR
+  |
+  v
+ECS Fargate Task
+```
+
+ECS TaskはPrivate Subnetに配置します。
+外部からの入口はPublic Subnet上のALBに限定します。
 
 ## ネットワーク構成
-
-現在のネットワーク構成は以下です。
 
 ```text
 VPC: 10.0.0.0/16
 
 Public Subnet:
-  - 10.0.0.0/24  ap-northeast-1a
-  - 10.0.1.0/24  ap-northeast-1c
+  - 10.0.0.0/24   ap-northeast-1a
+  - 10.0.1.0/24   ap-northeast-1c
 
 Private Subnet:
   - 10.0.10.0/24  ap-northeast-1a
@@ -31,21 +79,25 @@ Internet Gateway:
 Public Route Table:
   - 0.0.0.0/0 -> Internet Gateway
   - Public Subnet 2つに関連付け
+
+Private Route Table:
+  - Private Subnetごとに作成
+  - S3 Gateway Endpointを関連付け
 ```
 
 ## 設計意図
 
 ### VPC
 
-VPCは、AWS上に作るネットワーク全体の大枠です。
+VPCはAWS上に作る仮想ネットワーク全体の枠です。
 
-今回のCIDRは以下です。
+CIDRは以下です。
 
 ```text
 10.0.0.0/16
 ```
 
-この範囲を使うことで、今後ECS、RDS、VPC Endpointなどを追加してもサブネットを拡張しやすくしています。
+`/16` にしている理由は、Public Subnet、Private Subnet、VPC Endpoint、将来のRDSなどを追加してもIPアドレス設計に余裕を持たせるためです。
 
 また、以下を有効化しています。
 
@@ -54,13 +106,13 @@ enable_dns_support   = true
 enable_dns_hostnames = true
 ```
 
-これは、AWS内部でDNS名前解決を使いやすくするためです。ECS、ALB、RDSなどを組み合わせる構成では、DNS解決を有効にしておくのが基本です。
+ECS、ALB、VPC Endpoint、RDSなどを組み合わせる構成では、AWS内部のDNS名前解決が重要になるためです。
 
 ### Public Subnet
 
-Public Subnetは、インターネットから到達可能な入口を置くためのサブネットです。
+Public Subnetは、インターネットから到達可能な入口を配置するサブネットです。
 
-今回の構成では、将来的にALBをPublic Subnetに配置する想定です。
+今回の構成では、ALBをPublic Subnetに配置します。
 
 ```text
 10.0.0.0/24  ap-northeast-1a
@@ -69,76 +121,202 @@ Public Subnetは、インターネットから到達可能な入口を置くた�
 
 2つのAvailability Zoneに分けている理由は、単一AZ障害に対する耐性を持たせるためです。
 
-Public Subnetでは以下を有効にしています。
+Public Subnetには以下のルートがあります。
 
 ```text
-map_public_ip_on_launch = true
+0.0.0.0/0 -> Internet Gateway
 ```
 
-これは、このサブネットで起動したリソースにパブリックIPを自動付与する設定です。
-
-ただし、今回の最終構成では、アプリ本体をPublic Subnetに直接置くのではなく、ALBをPublic Subnetに置き、ECS TaskはPrivate Subnetに置く方針です。
+これにより、ALBがインターネットからHTTPリクエストを受けられます。
 
 ### Private Subnet
 
-Private Subnetは、インターネットから直接到達させたくないリソースを置くためのサブネットです。
+Private Subnetは、インターネットから直接到達させたくないリソースを配置するサブネットです。
 
-今回の構成では、将来的にECS TaskやRDSをPrivate Subnetに配置する想定です。
+今回の構成では、ECS Fargate TaskをPrivate Subnetに配置します。
 
 ```text
 10.0.10.0/24  ap-northeast-1a
 10.0.11.0/24  ap-northeast-1c
 ```
 
-Private Subnetでは、パブリックIPを自動付与しません。
+ECS TaskにはPublic IPを付与しません。
+そのため、外部からECS Taskへ直接アクセスすることはできません。
 
-この設計により、外部公開する入口と内部で保護するリソースを分離できます。
+アプリケーションへのアクセスは、必ずALBを経由します。
 
-### Internet Gateway
+## Security Group設計
 
-Internet Gatewayは、VPCとインターネットを接続するためのリソースです。
-
-Public Subnetからインターネットへ通信するために、VPCへアタッチしています。
-
-### Public Route Table
-
-Public Route Tableには、以下のルートを定義しています。
+通信経路は以下のように制御しています。
 
 ```text
-0.0.0.0/0 -> Internet Gateway
+Internet -> ALB Security Group : TCP 80
+ALB Security Group -> ECS Security Group : TCP 3000
+ECS Security Group -> VPC Endpoint Security Group : TCP 443
 ```
 
-このルートにより、Public Subnet内のリソースはインターネットへ通信できます。
+### ALB Security Group
 
-このRoute Tableは、2つのPublic Subnetに関連付けています。
+ALBは外部公開の入口です。
 
-## 現時点で作らないもの
+許可する通信:
 
-### NAT Gateway
+```text
+Inbound:
+  0.0.0.0/0 -> TCP 80
 
-現時点ではNAT Gatewayを作っていません。
+Outbound:
+  ALB Security Group -> ECS Security Group TCP 3000
+```
 
-理由は、NAT Gatewayは学習用環境としてはコストが高くなりやすいためです。
+ALBからECS Taskへの通信先はSecurity Groupで限定しています。
 
-Private Subnet内のECS TaskがECRや外部APIへ通信する必要が出た段階で、以下を比較して判断します。
+### ECS Security Group
 
-- NAT Gatewayを使う
-- VPC Endpointを使う
-- 学習用として一時的にPublic Subnet配置を許容する
+ECS TaskはPrivate Subnetに配置し、ALBからの通信だけを受けます。
 
-本番想定では、Private Subnetから外部へ出る設計が必要になるため、NAT GatewayまたはVPC Endpointの検討は必須です。
+許可する通信:
 
-### RDS
+```text
+Inbound:
+  ALB Security Group -> ECS Security Group TCP 3000
 
-現時点ではRDSを作っていません。
+Outbound:
+  0.0.0.0/0 all traffic
+```
 
-RDSは継続課金が発生するため、まずはネットワークとECS/Fargateの土台を作った後に追加します。
+ECS TaskのOutboundは現時点では広めに許可しています。
+ただし、Private SubnetにNAT Gatewayを置いていないため、実際のAWSサービス到達はVPC Endpoint経由が中心です。
 
-追加する場合は、Private Subnetに配置し、Security GroupでECS Taskからのみ接続できるようにします。
+### VPC Endpoint Security Group
+
+Interface VPC Endpointには専用Security Groupを付与します。
+
+許可する通信:
+
+```text
+Inbound:
+  ECS Security Group -> VPC Endpoint Security Group TCP 443
+
+Outbound:
+  0.0.0.0/0 all traffic
+```
+
+ECS TaskからECR API、ECR Docker Registry、CloudWatch LogsへPrivateLink経由で通信するために必要です。
+
+## VPC Endpoint設計
+
+ECS TaskはPrivate Subnetに配置されており、NAT Gatewayを使っていません。
+
+そのため、ECS TaskがECRからDockerイメージをpullし、CloudWatch Logsへログを送信するにはVPC Endpointが必要です。
+
+定義しているEndpoint:
+
+```text
+Interface Endpoint:
+  - com.amazonaws.ap-northeast-1.ecr.api
+  - com.amazonaws.ap-northeast-1.ecr.dkr
+  - com.amazonaws.ap-northeast-1.logs
+
+Gateway Endpoint:
+  - com.amazonaws.ap-northeast-1.s3
+```
+
+ECRのイメージレイヤー取得にはS3への到達が必要になるため、S3 Gateway Endpointも追加しています。
+
+NAT Gatewayを採用しなかった理由:
+
+- 学習用環境では継続課金が大きくなりやすい
+- 今回必要な通信先はECRとCloudWatch Logsが中心
+- VPC Endpointの方が通信先をAWSサービスに限定しやすい
+- Private Subnet構成を維持したままECS Taskを起動できる
+
+トレードオフ:
+
+- Interface Endpointにも時間課金はある
+- 外部APIへ出る必要がある場合はNAT Gatewayなど別経路が必要
+- Endpoint数が増えると構成が複雑になる
+
+## ECS / ALB設計
+
+### ECR
+
+ECRはDockerイメージの保存先です。
+
+ローカルでビルドしたDockerイメージをECRにpushし、ECS Task Definitionから参照します。
+
+```text
+<account_id>.dkr.ecr.ap-northeast-1.amazonaws.com/aws-platform-portfolio-dev-api:latest
+```
+
+学習環境を削除しやすくするため、ECRリポジトリには以下を設定しています。
+
+```hcl
+force_delete = true
+```
+
+これにより、Dockerイメージが残っていても `terraform destroy` でECRリポジトリを削除できます。
+
+### ECS Cluster
+
+ECS Clusterは、ECS ServiceやTaskをまとめる論理的な単位です。
+
+今回はFargateを使うため、EC2インスタンスの管理は行いません。
+
+### ECS Task Definition
+
+Task Definitionは、コンテナをどう起動するかを定義します。
+
+主な設定:
+
+- Dockerイメージ
+- CPU
+- Memory
+- Container Port
+- CloudWatch Logs設定
+- Task Execution Role
+
+今回のAPIはコンテナ内で3000番ポートをListenします。
+
+### ECS Service
+
+ECS Serviceは、指定した数のTaskを維持する仕組みです。
+
+dev環境では、通常時の `desired_count` を `0` にしています。
+
+理由:
+
+- Fargateの不要な継続課金を避けるため
+- 必要なときだけAPI疎通確認を行うため
+
+疎通確認時だけ以下で1台起動します。
+
+```bash
+terraform apply -auto-approve -var ecs_desired_count=1
+```
+
+確認後は、変数指定なしでapplyして `desired_count = 0` に戻します。
+
+```bash
+terraform apply -auto-approve
+```
+
+### ALB
+
+ALBはインターネットからのHTTPリクエストを受け、ECS Taskへ転送します。
+
+```text
+ALB Listener : HTTP 80
+Target Group : HTTP 3000
+Health Check : /health
+```
+
+ALB Target GroupはECS TaskをIPターゲットとして登録します。
+ECS Taskが起動するとTarget Groupに登録され、`/health` が成功すると `healthy` になります。
 
 ## Terraform module構成
 
-Terraformは以下の構成にしています。
+Terraformは以下の構成です。
 
 ```text
 infra/
@@ -167,101 +345,112 @@ infra/
       outputs.tf
 ```
 
-`environments/dev` は、dev環境固有の値やprovider設定を持ちます。
+### environments/dev
 
-`modules/network` は、VPCやSubnetなどの再利用可能なネットワーク定義を持ちます。
+dev環境固有のprovider設定、変数、module呼び出し、outputsを持ちます。
 
-`modules/security` は、ALB用Security GroupとECS Task用Security Groupを持ちます。
+### modules/network
 
-`modules/endpoints` は、Private Subnet内のECS TaskがECRとCloudWatch Logsへ到達するためのVPC Endpointを持ちます。
+以下を定義します。
 
-`modules/ecs` は、ECR、CloudWatch Logs、ECS Cluster、Task Definition、ECS Service、ALB、Target Group、Listenerを持ちます。
+- VPC
+- Public Subnet
+- Private Subnet
+- Internet Gateway
+- Public Route Table
+- Private Route Table
+- Route Table Association
 
-この分割により、将来的に `stg` や `prod` を追加する場合でも、同じmoduleを再利用できます。
+### modules/security
 
-## ECS / ALB構成
+以下を定義します。
 
-ECS / ALBの構成は以下です。
+- ALB Security Group
+- ECS Security Group
+- VPC Endpoint Security Group
+- Security Group Rules
 
-```text
-Internet
-  |
-  | HTTP :80
-  v
-Application Load Balancer
-  |
-  | HTTP :3000
-  v
-ECS Service
-  |
-  v
-Fargate Task
-```
+### modules/endpoints
 
-ALBはPublic Subnetに配置します。
+以下を定義します。
 
-ECS TaskはPrivate Subnetに配置します。
+- ECR API Interface Endpoint
+- ECR Docker Interface Endpoint
+- CloudWatch Logs Interface Endpoint
+- S3 Gateway Endpoint
 
-Task Definitionでは、ECRの `latest` タグのイメージを参照します。
+### modules/ecs
 
-```text
-ECR Repository URL: <repository_url>:latest
-Container Port: 3000
-Health Check Path: /health
-```
+以下を定義します。
 
-## 現時点のECS desired_count
+- ECR Repository
+- CloudWatch Log Group
+- ECS Cluster
+- ECS Task Execution Role
+- ECS Task Definition
+- ECS Service
+- ALB
+- Target Group
+- Listener
 
-dev環境では、ECS Serviceの `desired_count` をデフォルトで `0` にしています。
+## 検証済み内容
+
+以下を実施済みです。
+
+- `terraform fmt`
+- `terraform init`
+- `terraform validate`
+- `terraform plan`
+- `terraform apply`
+- Docker image build
+- ECR push
+- ECS Task起動
+- ALB Target Groupのhealthy確認
+- ALB経由の `/health` 疎通確認
+- ECS desired countを0へ戻す確認
+- `terraform destroy`
+- ECR削除時の `force_delete = true` 対応
+
+## 現時点で作らないもの
+
+### NAT Gateway
+
+今回の構成ではNAT Gatewayを作っていません。
 
 理由:
 
-- まだECRにDockerイメージをpushしていないため
-- Private SubnetからECRやCloudWatch Logsへ出るためのNAT GatewayまたはVPC Endpointをまだ作っていないため
-- 不要なFargate起動コストを避けるため
+- 学習用環境では料金が高くなりやすい
+- ECS Taskが必要とするAWSサービス通信はVPC Endpointで満たせる
+- Private Subnet構成を保ちながらコストを抑えたい
 
-今後、ECRへDockerイメージをpushし、Private Subnetのアウトバウンド経路を設計した後に `desired_count = 1` へ変更します。
+外部APIへPrivate Subnetからアクセスする要件が出た場合は、NAT Gatewayを検討します。
 
-## VPC Endpoint構成
+### RDS
 
-ECS TaskはPrivate Subnetに配置するため、インターネットへ直接出られません。
+現時点ではRDSを作っていません。
 
-ECRからイメージをpullし、CloudWatch Logsへログを送るため、以下のVPC Endpointを定義しています。
+追加する場合は、Private Subnetに配置し、ECS Security Groupからのみ接続できるようにします。
 
-```text
-Interface Endpoint:
-  - ecr.api
-  - ecr.dkr
-  - logs
+### HTTPS / ACM
 
-Gateway Endpoint:
-  - s3
-```
+現時点ではALBのHTTP 80番のみです。
 
-ECRのイメージレイヤー取得にはS3への到達が必要になるため、S3 Gateway Endpointも追加しています。
+公開用途に近づける場合は、ACM証明書を使ってHTTPS化します。
 
-Interface Endpointには専用Security Groupを付与し、ECS Task用Security GroupからのHTTPS通信のみ受ける設計です。
+### WAF / GuardDuty / Security Hub
 
-## terraform planで確認した作成予定
+現時点では未実装です。
 
-`terraform plan` では、以下の結果を確認しています。
+ALB公開後の防御、検知、セキュリティ可視化を強化する段階で追加します。
 
-```text
-Plan: 9 to add, 0 to change, 0 to destroy.
-```
+## 今後の改善候補
 
-作成予定リソース:
-
-```text
-aws_vpc.this
-aws_internet_gateway.this
-aws_subnet.public[0]
-aws_subnet.public[1]
-aws_subnet.private[0]
-aws_subnet.private[1]
-aws_route_table.public
-aws_route_table_association.public[0]
-aws_route_table_association.public[1]
-```
-
-現時点では `terraform apply` は実行していません。
+- GitHub ActionsによるCI/CD
+- HTTPS化
+- CloudWatch Alarm
+- ECS Exec
+- IAM権限の最小化
+- ECRライフサイクルポリシー
+- README用の構成図画像
+- RDS追加
+- WAF追加
