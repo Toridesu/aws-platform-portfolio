@@ -9,8 +9,10 @@
 作業ディレクトリ:
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio
+cd aws-platform-portfolio
 ```
+
+以降の `cd ...` は、特に指定がない限りリポジトリルートから実行する前提です。
 
 AWS Profile:
 
@@ -66,7 +68,7 @@ curl http://localhost:3000/health
 ## Dockerイメージ作成
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio/app
+cd app
 docker build -t aws-platform-api .
 ```
 
@@ -87,7 +89,7 @@ curl http://localhost:3000/health
 Terraform作業ディレクトリ:
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio/infra/environments/dev
+cd infra/environments/dev
 ```
 
 初期化:
@@ -131,15 +133,15 @@ terraform destroy
 Terraform apply後、ECR Repository URLを確認します。
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio/infra/environments/dev
 terraform output -raw ecr_repository_url
 ```
 
 ECRへログインします。
 
 ```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 aws ecr get-login-password --region ap-northeast-1 \
-  | docker login --username AWS --password-stdin 273004335930.dkr.ecr.ap-northeast-1.amazonaws.com
+  | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com
 ```
 
 DockerイメージにECR用タグを付けます。
@@ -175,7 +177,6 @@ ecs_desired_count = 0
 API疎通確認時だけ、ECS Taskを1台起動します。
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio/infra/environments/dev
 terraform apply -auto-approve -var ecs_desired_count=1
 ```
 
@@ -389,7 +390,7 @@ aws ecs describe-services \
 検証が終わったら、AWSリソースを削除します。
 
 ```bash
-cd /c/Users/siton/Documents/Codex/career/aws-platform-portfolio/infra/environments/dev
+cd infra/environments/dev
 terraform destroy
 ```
 
