@@ -17,35 +17,52 @@
 
 ## 構成
 
-```text
-Internet
-  |
-  | HTTP :80
-  v
-Application Load Balancer
-  |
-  | HTTP :3000
-  v
-ECS Fargate Task
-  |
-  v
-Dockerized Node.js API
+```mermaid
+flowchart TB
+  user["User / Browser"]
+
+  subgraph aws["AWS ap-northeast-1"]
+    subgraph vpc["VPC 10.0.0.0/16"]
+      subgraph public["Public Subnets"]
+        alb["Application Load Balancer\nHTTP :80"]
+      end
+
+      subgraph private["Private Subnets"]
+        ecs["ECS Fargate Service\nTask desired_count 0 or 1"]
+        app["Dockerized Node.js API\nContainer :3000"]
+      end
+
+      subgraph endpoints["VPC Endpoints"]
+        ecr_api["ECR API\nInterface Endpoint"]
+        ecr_dkr["ECR Docker\nInterface Endpoint"]
+        logs_ep["CloudWatch Logs\nInterface Endpoint"]
+        s3_ep["S3\nGateway Endpoint"]
+      end
+    end
+
+    ecr["Amazon ECR\nDocker Image Repository"]
+    logs["CloudWatch Logs"]
+  end
+
+  local["Local Docker Build"]
+
+  user -->|"HTTP :80"| alb
+  alb -->|"HTTP :3000"| ecs
+  ecs --> app
+
+  local -->|"docker push"| ecr
+  ecs -->|"pull image"| ecr_dkr
+  ecs -->|"ECR auth/API"| ecr_api
+  ecs -->|"image layers"| s3_ep
+  ecs -->|"application logs"| logs_ep
+
+  ecr_dkr --> ecr
+  ecr_api --> ecr
+  logs_ep --> logs
 ```
 
 ECSタスクはPrivate Subnetに配置し、外部から直接アクセスできない構成にしています。
 外部公開の入口はPublic Subnet上のALBに限定しています。
-
-Dockerイメージの流れは以下です。
-
-```text
-Local Docker Build
-  |
-  v
-Amazon ECR
-  |
-  v
-ECS Fargate Task
-```
 
 Private Subnet上のECSタスクがECRからイメージをpullし、CloudWatch Logsへログを送信できるように、NAT GatewayではなくVPC Endpointを利用しています。
 
@@ -267,7 +284,6 @@ force_delete = true
 ## 今後の改善候補
 
 - GitHub ActionsによるCI/CD
-- README用の構成図追加
 - CloudWatch Alarm追加
 - ECS Execの検討
 - HTTPS化
