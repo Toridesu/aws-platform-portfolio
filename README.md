@@ -202,7 +202,7 @@ GitHub Actionsで以下の検証を行います。
 - Terraform validate
 
 現時点では、AWSへの自動デプロイは行いません。
-ECR pushやECS deployを自動化する場合は、GitHub Actions OIDC用のIAM Roleを設計してから追加します。
+GitHub Actions OIDC用のIAM Role moduleは用意していますが、GitHubリポジトリ確定前のためデフォルトでは無効化しています。
 
 ## ECSタスク起動確認
 
@@ -288,6 +288,7 @@ force_delete = true
 - ECS desired countを0へ戻す運用
 - `terraform destroy`
 - GitHub Actionsによる検証CI
+- GitHub Actions OIDC IAM Role module
 
 ## 関連ドキュメント
 
@@ -299,7 +300,7 @@ force_delete = true
 ## 今後の改善候補
 
 - GitHub ActionsによるCI/CD
-- GitHub Actions OIDCによるAWS認証
+- GitHub ActionsによるECR push / ECS deploy
 - CloudWatch Alarm追加
 - ECS Execの検討
 - HTTPS化

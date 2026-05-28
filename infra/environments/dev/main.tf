@@ -67,3 +67,16 @@ module "ecs" {
   container_port        = 3000
   desired_count         = var.ecs_desired_count
 }
+
+module "github_oidc" {
+  source = "../../modules/github_oidc"
+
+  project_name       = var.project_name
+  environment        = var.environment
+  enabled            = var.enable_github_oidc
+  github_repository  = var.github_repository
+  github_branch      = var.github_branch
+  ecr_repository_arn = module.ecs.ecr_repository_arn
+  ecs_cluster_arn    = module.ecs.ecs_cluster_arn
+  ecs_service_arn    = module.ecs.ecs_service_arn
+}

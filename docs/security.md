@@ -14,6 +14,7 @@
 - ECR image scan on push
 - CloudWatch Logs
 - ECS Container Insights
+- GitHub Actions用OIDC IAM Role module
 
 以下はまだ未実装です。
 
@@ -22,7 +23,7 @@
 - Secrets Manager
 - GuardDuty
 - Security Hub
-- GitHub Actions用OIDC IAM Role
+- GitHub Actionsからの自動デプロイ
 - ECS Exec
 - IAM権限の細分化
 
@@ -254,9 +255,29 @@ RDSや外部APIを追加する場合は、環境変数へ直接秘密情報を�
 
 ### GitHub Actions OIDC
 
-CI/CDは未実装です。
+GitHub Actions OIDC用のIAM Role moduleは追加済みです。
+ただし、GitHubリポジトリが未確定のため、dev環境ではデフォルト無効にしています。
 
-GitHub ActionsからAWSへデプロイする場合は、長期Access Keyを使わず、OIDC連携で一時認証情報を発行する構成を検討します。
+```hcl
+enable_github_oidc = false
+```
+
+有効化する場合は、実際のGitHubリポジトリを指定します。
+
+```hcl
+enable_github_oidc = true
+github_repository  = "owner/repository"
+github_branch      = "main"
+```
+
+このRoleは、長期Access Keyを使わず、GitHub ActionsからOIDCで一時認証情報を取得するためのものです。
+
+現在想定している権限は以下です。
+
+- ECRへのDocker image push
+- ECS Serviceのdescribe/update
+
+Terraform apply用の広い権限ではなく、既存ECS Serviceを更新するdeploy用途に絞っています。
 
 ## セキュリティ設計として説明すべきポイント
 
@@ -271,6 +292,7 @@ GitHub ActionsからAWSへデプロイする場合は、長期Access Keyを使�
 - ECR image scanを有効化している
 - destroy時のECR削除問題に対応している
 - HTTPS、WAF、Secrets Managerなど未実装項目も認識している
+- GitHub Actionsでは長期Access KeyではなくOIDCを使う方針にしている
 
 ## Terraform module構成
 

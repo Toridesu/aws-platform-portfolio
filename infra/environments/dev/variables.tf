@@ -45,3 +45,21 @@ variable "ecs_desired_count" {
   type        = number
   default     = 0
 }
+
+variable "enable_github_oidc" {
+  description = "Whether to create GitHub Actions OIDC resources."
+  type        = bool
+  default     = false
+}
+
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the deploy role, in owner/repository format."
+  type        = string
+  default     = ""
+}
+
+variable "github_branch" {
+  description = "GitHub branch allowed to assume the deploy role."
+  type        = string
+  default     = "main"
+}

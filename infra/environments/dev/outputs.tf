@@ -43,6 +43,11 @@ output "ecr_repository_url" {
   value       = module.ecs.ecr_repository_url
 }
 
+output "github_actions_role_arn" {
+  description = "IAM role ARN for GitHub Actions deployments."
+  value       = module.github_oidc.role_arn
+}
+
 output "ecs_cluster_name" {
   description = "ECS cluster name."
   value       = module.ecs.ecs_cluster_name

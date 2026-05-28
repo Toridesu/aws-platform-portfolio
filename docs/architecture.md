@@ -22,6 +22,7 @@
 - Target Group
 - Listener
 - ECS Task Execution Role
+- GitHub Actions OIDC IAM Role module
 
 RDS、WAF、GuardDuty、Security Hub、HTTPS化、CI/CDはまだ未実装です。
 
@@ -343,6 +344,10 @@ infra/
       main.tf
       variables.tf
       outputs.tf
+    github_oidc/
+      main.tf
+      variables.tf
+      outputs.tf
 ```
 
 ### environments/dev
@@ -393,6 +398,23 @@ dev環境固有のprovider設定、変数、module呼び出し、outputsを持�
 - Target Group
 - Listener
 
+### modules/github_oidc
+
+以下を定義します。
+
+- GitHub Actions OIDC Provider
+- GitHub Actions Deploy Role
+- ECR push用IAM Policy
+- ECS Service update用IAM Policy
+
+dev環境ではデフォルト無効です。
+
+```hcl
+enable_github_oidc = false
+```
+
+実際のGitHubリポジトリが決まった後、`github_repository` を設定して有効化します。
+
 ## 検証済み内容
 
 以下を実施済みです。
@@ -410,6 +432,7 @@ dev環境固有のprovider設定、変数、module呼び出し、outputsを持�
 - ECS desired countを0へ戻す確認
 - `terraform destroy`
 - ECR削除時の `force_delete = true` 対応
+- GitHub Actions OIDC IAM Role moduleの追加
 
 ## 現時点で作らないもの
 
@@ -445,7 +468,7 @@ ALB公開後の防御、検知、セキュリティ可視化を強化する段�
 
 ## 今後の改善候補
 
-- GitHub ActionsによるCI/CD
+- GitHub ActionsによるECR push / ECS deploy
 - HTTPS化
 - CloudWatch Alarm
 - ECS Exec

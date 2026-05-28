@@ -18,3 +18,11 @@ private_subnets = [
   "10.0.10.0/24",
   "10.0.11.0/24"
 ]
+
+# Keep this at 0 unless you are temporarily testing the API through the ALB.
+ecs_desired_count = 0
+
+# Enable this only after setting the real GitHub repository.
+enable_github_oidc = false
+# github_repository  = "your-github-owner/aws-platform-portfolio"
+# github_branch      = "main"

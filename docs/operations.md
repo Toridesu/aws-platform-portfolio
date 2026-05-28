@@ -429,6 +429,40 @@ terraform state list
 12. terraform state listで削除確認
 ```
 
+## GitHub Actions OIDC有効化
+
+GitHub ActionsからAWSへデプロイする場合は、長期Access KeyではなくOIDCを使います。
+
+現在、Terraform moduleは追加済みですが、デフォルトでは無効です。
+
+```hcl
+enable_github_oidc = false
+```
+
+有効化する場合は、`infra/environments/dev/terraform.tfvars` に実際のGitHubリポジトリを設定します。
+
+```hcl
+enable_github_oidc = true
+github_repository  = "owner/repository"
+github_branch      = "main"
+```
+
+その後、Terraformで反映します。
+
+```bash
+cd infra/environments/dev
+terraform plan
+terraform apply
+```
+
+作成後、Role ARNを確認します。
+
+```bash
+terraform output github_actions_role_arn
+```
+
+このRole ARNをGitHub ActionsのAWS認証設定で使用します。
+
 ## コミット前確認
 
 ```bash
