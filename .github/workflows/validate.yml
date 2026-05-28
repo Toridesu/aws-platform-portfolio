@@ -1,0 +1,60 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  app:
+    name: App and Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Validate application syntax
+        working-directory: app
+        run: npm run validate
+
+      - name: Build Docker image
+        working-directory: app
+        run: docker build -t aws-platform-api:ci .
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        working-directory: infra/environments/dev
+        run: terraform fmt -check -recursive ../..
+
+      - name: Initialize Terraform
+        working-directory: infra/environments/dev
+        run: terraform init -backend=false
+
+      - name: Validate Terraform
+        working-directory: infra/environments/dev
+        run: terraform validate

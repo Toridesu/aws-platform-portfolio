@@ -190,6 +190,20 @@ terraform apply
 terraform destroy
 ```
 
+## CI
+
+GitHub Actionsで以下の検証を行います。
+
+- Node.js依存関係のインストール
+- アプリケーション構文チェック
+- Docker image build
+- Terraform format check
+- Terraform init
+- Terraform validate
+
+現時点では、AWSへの自動デプロイは行いません。
+ECR pushやECS deployを自動化する場合は、GitHub Actions OIDC用のIAM Roleを設計してから追加します。
+
 ## ECSタスク起動確認
 
 この構成では、Fargateの不要な課金を避けるため、dev環境のECS Serviceは通常 `desired_count = 0` にしています。
@@ -273,6 +287,7 @@ force_delete = true
 - ALB経由の `/health` 疎通確認
 - ECS desired countを0へ戻す運用
 - `terraform destroy`
+- GitHub Actionsによる検証CI
 
 ## 関連ドキュメント
 
@@ -284,6 +299,7 @@ force_delete = true
 ## 今後の改善候補
 
 - GitHub ActionsによるCI/CD
+- GitHub Actions OIDCによるAWS認証
 - CloudWatch Alarm追加
 - ECS Execの検討
 - HTTPS化
