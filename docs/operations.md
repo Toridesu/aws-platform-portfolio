@@ -443,7 +443,7 @@ enable_github_oidc = false
 
 ```hcl
 enable_github_oidc = true
-github_repository  = "owner/repository"
+github_repository  = "Toridesu/aws-platform-portfolio"
 github_branch      = "main"
 ```
 

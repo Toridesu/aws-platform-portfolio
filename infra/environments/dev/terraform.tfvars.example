@@ -24,5 +24,5 @@ ecs_desired_count = 0
 
 # Enable this only after setting the real GitHub repository.
 enable_github_oidc = false
-# github_repository  = "your-github-owner/aws-platform-portfolio"
+# github_repository  = "Toridesu/aws-platform-portfolio"
 # github_branch      = "main"
