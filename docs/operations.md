@@ -433,13 +433,7 @@ terraform state list
 
 GitHub ActionsからAWSへデプロイする場合は、長期Access KeyではなくOIDCを使います。
 
-現在、Terraform moduleは追加済みですが、デフォルトでは無効です。
-
-```hcl
-enable_github_oidc = false
-```
-
-有効化する場合は、`infra/environments/dev/terraform.tfvars` に実際のGitHubリポジトリを設定します。
+現在、dev環境ではGitHub Actions OIDC Roleを作成済みです。
 
 ```hcl
 enable_github_oidc = true
@@ -447,17 +441,10 @@ github_repository  = "Toridesu/aws-platform-portfolio"
 github_branch      = "main"
 ```
 
-その後、Terraformで反映します。
+Role ARNを確認します。
 
 ```bash
 cd infra/environments/dev
-terraform plan
-terraform apply
-```
-
-作成後、Role ARNを確認します。
-
-```bash
 terraform output github_actions_role_arn
 ```
 

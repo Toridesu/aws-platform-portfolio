@@ -24,7 +24,7 @@
 - ECS Task Execution Role
 - GitHub Actions OIDC IAM Role module
 
-RDS、WAF、GuardDuty、Security Hub、HTTPS化、CI/CDはまだ未実装です。
+RDS、WAF、GuardDuty、Security Hub、HTTPS化、ECR push / ECS deployの自動化はまだ未実装です。
 
 ## 全体構成
 
@@ -407,13 +407,15 @@ dev環境固有のprovider設定、変数、module呼び出し、outputsを持�
 - ECR push用IAM Policy
 - ECS Service update用IAM Policy
 
-dev環境ではデフォルト無効です。
+GitHub Actions OIDC Roleは、dev環境で作成済みです。
 
 ```hcl
-enable_github_oidc = false
+enable_github_oidc = true
+github_repository  = "Toridesu/aws-platform-portfolio"
+github_branch      = "main"
 ```
 
-実際のGitHubリポジトリが決まった後、`github_repository` を設定して有効化します。
+このRoleは、今後GitHub ActionsからECR pushとECS Service updateを行うために使います。
 
 ## 検証済み内容
 
@@ -433,6 +435,7 @@ enable_github_oidc = false
 - `terraform destroy`
 - ECR削除時の `force_delete = true` 対応
 - GitHub Actions OIDC IAM Role moduleの追加
+- GitHub Actions OIDC IAM Role作成
 
 ## 現時点で作らないもの
 

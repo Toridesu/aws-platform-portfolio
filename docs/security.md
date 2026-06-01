@@ -255,14 +255,7 @@ RDSや外部APIを追加する場合は、環境変数へ直接秘密情報を�
 
 ### GitHub Actions OIDC
 
-GitHub Actions OIDC用のIAM Role moduleは追加済みです。
-ただし、GitHubリポジトリが未確定のため、dev環境ではデフォルト無効にしています。
-
-```hcl
-enable_github_oidc = false
-```
-
-有効化する場合は、実際のGitHubリポジトリを指定します。
+GitHub Actions OIDC用のIAM Roleは作成済みです。
 
 ```hcl
 enable_github_oidc = true

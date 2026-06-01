@@ -21,6 +21,15 @@ provider "aws" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
+locals {
+  name_prefix        = "${var.project_name}-${var.environment}"
+  ecr_repository_arn = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${local.name_prefix}-api"
+  ecs_cluster_arn    = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/${local.name_prefix}-cluster"
+  ecs_service_arn    = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:service/${local.name_prefix}-cluster/${local.name_prefix}-api-service"
+}
+
 module "network" {
   source = "../../modules/network"
 
@@ -76,7 +85,7 @@ module "github_oidc" {
   enabled            = var.enable_github_oidc
   github_repository  = var.github_repository
   github_branch      = var.github_branch
-  ecr_repository_arn = module.ecs.ecr_repository_arn
-  ecs_cluster_arn    = module.ecs.ecs_cluster_arn
-  ecs_service_arn    = module.ecs.ecs_service_arn
+  ecr_repository_arn = local.ecr_repository_arn
+  ecs_cluster_arn    = local.ecs_cluster_arn
+  ecs_service_arn    = local.ecs_service_arn
 }
