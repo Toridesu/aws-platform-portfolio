@@ -24,7 +24,7 @@
 - ECS Task Execution Role
 - GitHub Actions OIDC IAM Role module
 
-RDS、WAF、GuardDuty、Security Hub、HTTPS化、ECR push / ECS deployの自動化はまだ未実装です。
+RDS、WAF、GuardDuty、Security Hub、HTTPS化はまだ未実装です。
 
 ## 全体構成
 
@@ -436,6 +436,7 @@ github_branch      = "main"
 - ECR削除時の `force_delete = true` 対応
 - GitHub Actions OIDC IAM Role moduleの追加
 - GitHub Actions OIDC IAM Role作成
+- GitHub ActionsによるECR push / ECS deploy workflow追加
 
 ## 現時点で作らないもの
 
@@ -471,7 +472,6 @@ ALB公開後の防御、検知、セキュリティ可視化を強化する段�
 
 ## 今後の改善候補
 
-- GitHub ActionsによるECR push / ECS deploy
 - HTTPS化
 - CloudWatch Alarm
 - ECS Exec

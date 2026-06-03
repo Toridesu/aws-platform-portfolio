@@ -450,6 +450,39 @@ terraform output github_actions_role_arn
 
 このRole ARNをGitHub ActionsのAWS認証設定で使用します。
 
+## GitHub Actions deploy workflow
+
+Deploy workflowは手動実行です。
+
+```text
+Actions -> Deploy -> Run workflow
+```
+
+GitHub repository variablesに以下を設定します。
+
+```text
+AWS_ROLE_ARN = arn:aws:iam::273004335930:role/aws-platform-portfolio-dev-github-actions-deploy-role
+AWS_REGION = ap-northeast-1
+ECR_REPOSITORY = aws-platform-portfolio-dev-api
+ECS_CLUSTER = aws-platform-portfolio-dev-cluster
+ECS_SERVICE = aws-platform-portfolio-dev-api-service
+```
+
+Deploy workflowが行うこと:
+
+```text
+1. GitHub OIDCでAWSへ認証
+2. Docker imageをbuild
+3. ECRへcommit SHA tagをpush
+4. ECRへlatest tagをpush
+5. ECS Serviceをforce new deployment
+```
+
+注意:
+
+Deploy workflowを成功させるには、ECR RepositoryとECS ServiceがAWS上に存在している必要があります。
+`terraform destroy` 後の状態では失敗します。
+
 ## コミット前確認
 
 ```bash

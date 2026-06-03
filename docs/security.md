@@ -23,7 +23,6 @@
 - Secrets Manager
 - GuardDuty
 - Security Hub
-- GitHub Actionsからの自動デプロイ
 - ECS Exec
 - IAM権限の細分化
 
@@ -271,6 +270,9 @@ github_branch      = "main"
 - ECS Serviceのdescribe/update
 
 Terraform apply用の広い権限ではなく、既存ECS Serviceを更新するdeploy用途に絞っています。
+
+Deploy workflowは手動実行にしています。
+push時に自動でAWSへ反映するのではなく、明示的に実行した場合だけECR pushとECS deployを行います。
 
 ## セキュリティ設計として説明すべきポイント
 

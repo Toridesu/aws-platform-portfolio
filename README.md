@@ -203,7 +203,21 @@ GitHub Actionsで以下の検証を行います。
 
 現時点では、AWSへの自動デプロイは行いません。
 GitHub Actions OIDC用のIAM Roleは作成済みです。
-次の段階で、ECR pushとECS deployのworkflowを追加します。
+
+手動実行用のDeploy workflowでは、以下を行います。
+
+- GitHub OIDCでAWSへ認証
+- Docker image build
+- ECRへ `latest` とcommit SHA tagをpush
+- ECS Serviceをforce new deployment
+
+Deploy workflowを使う前に、GitHub repository variablesへ以下を設定します。
+
+- `AWS_ROLE_ARN`
+- `AWS_REGION`
+- `ECR_REPOSITORY`
+- `ECS_CLUSTER`
+- `ECS_SERVICE`
 
 ## ECSタスク起動確認
 
@@ -291,6 +305,7 @@ force_delete = true
 - GitHub Actionsによる検証CI
 - GitHub Actions OIDC IAM Role module
 - GitHub Actions OIDC IAM Role作成
+- GitHub ActionsによるECR push / ECS deploy workflow
 
 ## 関連ドキュメント
 
@@ -301,8 +316,6 @@ force_delete = true
 
 ## 今後の改善候補
 
-- GitHub ActionsによるCI/CD
-- GitHub ActionsによるECR push / ECS deploy
 - CloudWatch Alarm追加
 - ECS Execの検討
 - HTTPS化
