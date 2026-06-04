@@ -13,6 +13,7 @@
 - ECS Fargateによるコンテナ実行
 - ALBによるHTTP公開とヘルスチェック
 - VPC EndpointによるPrivate SubnetからのAWSサービス到達
+- GitHub Actions OIDCによる長期Access Keyを使わないデプロイ
 - 検証後に `terraform destroy` で削除できる運用
 
 ## 構成
@@ -42,15 +43,18 @@ flowchart TB
 
     ecr["Amazon ECR\nDocker Image Repository"]
     logs["CloudWatch Logs"]
+    iam["IAM Role\nGitHub Actions OIDC"]
   end
 
-  local["Local Docker Build"]
+  github["GitHub Actions\nValidate / Deploy"]
 
   user -->|"HTTP :80"| alb
   alb -->|"HTTP :3000"| ecs
   ecs --> app
 
-  local -->|"docker push"| ecr
+  github -->|"OIDC assume role"| iam
+  github -->|"docker push"| ecr
+  github -->|"update-service"| ecs
   ecs -->|"pull image"| ecr_dkr
   ecs -->|"ECR auth/API"| ecr_api
   ecs -->|"image layers"| s3_ep
@@ -83,6 +87,10 @@ Private Subnet上のECSタスクがECRからイメージをpullし、CloudWatch 
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml
+│       └── validate.yml
 ├── app/
 │   ├── Dockerfile
 │   ├── package.json
@@ -103,6 +111,7 @@ Private Subnet上のECSタスクがECRからイメージをpullし、CloudWatch 
     └── modules/
         ├── ecs/
         ├── endpoints/
+        ├── github_oidc/
         ├── network/
         └── security/
 ```
@@ -201,8 +210,8 @@ GitHub Actionsで以下の検証を行います。
 - Terraform init
 - Terraform validate
 
-現時点では、AWSへの自動デプロイは行いません。
-GitHub Actions OIDC用のIAM Roleは作成済みです。
+push時のAWS自動デプロイは行いません。
+AWSへの反映は、手動実行用のDeploy workflowを明示的に起動した場合だけ行います。
 
 手動実行用のDeploy workflowでは、以下を行います。
 
@@ -211,13 +220,23 @@ GitHub Actions OIDC用のIAM Roleは作成済みです。
 - ECRへ `latest` とcommit SHA tagをpush
 - ECS Serviceをforce new deployment
 
-Deploy workflowを使う前に、GitHub repository variablesへ以下を設定します。
+Deploy workflowを使う前に、TerraformでAWS基盤とGitHub Actions OIDC Roleを作成しておく必要があります。
+
+```bash
+cd infra/environments/dev
+terraform apply
+```
+
+GitHub repository variablesへ以下を設定します。
 
 - `AWS_ROLE_ARN`
 - `AWS_REGION`
 - `ECR_REPOSITORY`
 - `ECS_CLUSTER`
 - `ECS_SERVICE`
+
+このリポジトリでは学習後に `terraform destroy` でAWSリソースを削除する運用にしています。
+destroy後はGitHub Actions OIDC Roleも削除されるため、Deploy workflowを再実行する前に再度 `terraform apply` が必要です。
 
 ## ECSタスク起動確認
 
@@ -305,7 +324,8 @@ force_delete = true
 - GitHub Actionsによる検証CI
 - GitHub Actions OIDC IAM Role module
 - GitHub Actions OIDC IAM Role作成
-- GitHub ActionsによるECR push / ECS deploy workflow
+- GitHub ActionsによるECR push / ECS deploy workflow成功
+- destroy後にTerraform管理リソースが残っていないことの確認
 
 ## 関連ドキュメント
 
