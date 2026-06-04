@@ -266,6 +266,25 @@ curl http://$(terraform output -raw alb_dns_name)/health
 terraform apply -auto-approve
 ```
 
+## ログ確認
+
+ECS/Fargate上のアプリケーションログはCloudWatch Logsへ出力します。
+
+ロググループ:
+
+```text
+/ecs/aws-platform-portfolio-dev-api
+```
+
+確認手順は [運用](docs/operations.md) にまとめています。
+
+ログ確認では、以下を確認します。
+
+- ECS Taskが起動したか
+- アプリケーションが起動時にエラーを出していないか
+- ALB経由のリクエストがAPIまで到達しているか
+- image pullや権限エラーが発生していないか
+
 ## 設計上のポイント
 
 ### Public / Private Subnet分離
@@ -319,6 +338,7 @@ force_delete = true
 - ECS Fargate task起動
 - ALB Target Group health check
 - ALB経由の `/health` 疎通確認
+- CloudWatch Logsでのログ確認手順整理
 - ECS desired countを0へ戻す運用
 - `terraform destroy`
 - GitHub Actionsによる検証CI

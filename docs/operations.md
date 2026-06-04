@@ -296,6 +296,11 @@ ECS Taskのロググループ:
 /ecs/aws-platform-portfolio-dev-api
 ```
 
+注意:
+
+`terraform destroy` 後はCloudWatch Log Groupも削除されます。
+ログを確認する場合は、`terraform apply` 後にECS Taskを起動し、API疎通確認を行ってから確認します。
+
 ログストリーム一覧:
 
 ```bash
@@ -307,6 +312,19 @@ aws logs describe-log-streams \
   --max-items 5
 ```
 
+直近のログストリーム名だけ取得する場合:
+
+```bash
+aws logs describe-log-streams \
+  --log-group-name /ecs/aws-platform-portfolio-dev-api \
+  --region ap-northeast-1 \
+  --order-by LastEventTime \
+  --descending \
+  --max-items 1 \
+  --query "logStreams[0].logStreamName" \
+  --output text
+```
+
 ログイベント確認:
 
 ```bash
@@ -316,6 +334,55 @@ aws logs get-log-events \
   --region ap-northeast-1 \
   --limit 20
 ```
+
+直近ログを時刻とメッセージに絞って確認する場合:
+
+```bash
+LOG_STREAM_NAME=$(aws logs describe-log-streams \
+  --log-group-name /ecs/aws-platform-portfolio-dev-api \
+  --region ap-northeast-1 \
+  --order-by LastEventTime \
+  --descending \
+  --max-items 1 \
+  --query "logStreams[0].logStreamName" \
+  --output text)
+
+aws logs get-log-events \
+  --log-group-name /ecs/aws-platform-portfolio-dev-api \
+  --log-stream-name "$LOG_STREAM_NAME" \
+  --region ap-northeast-1 \
+  --limit 20 \
+  --query "events[].{Time:timestamp,Message:message}" \
+  --output table
+```
+
+PowerShellの場合:
+
+```powershell
+$logStreamName = aws logs describe-log-streams `
+  --log-group-name /ecs/aws-platform-portfolio-dev-api `
+  --region ap-northeast-1 `
+  --order-by LastEventTime `
+  --descending `
+  --max-items 1 `
+  --query "logStreams[0].logStreamName" `
+  --output text
+
+aws logs get-log-events `
+  --log-group-name /ecs/aws-platform-portfolio-dev-api `
+  --log-stream-name $logStreamName `
+  --region ap-northeast-1 `
+  --limit 20 `
+  --query "events[].{Time:timestamp,Message:message}" `
+  --output table
+```
+
+見るポイント:
+
+- アプリケーション起動ログが出ているか
+- `/health` へのアクセス時にエラーが出ていないか
+- `CannotPullContainerError` や権限エラーが出ていないか
+- ログが出ない場合、CloudWatch Logs VPC Endpoint、Task Execution Role、Security Groupを確認する
 
 ## よくあるトラブル
 
