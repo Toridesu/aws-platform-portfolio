@@ -16,6 +16,27 @@
 - GitHub Actions OIDCによる長期Access Keyを使わないデプロイ
 - 検証後に `terraform destroy` で削除できる運用
 
+## このポートフォリオで証明すること
+
+このリポジトリでは、単にAWSリソースを作るだけでなく、コンテナアプリケーションを安全に公開し、検証後に削除できる一連の流れを示しています。
+
+| 観点 | 内容 |
+| --- | --- |
+| IaC | Terraform moduleでネットワーク、セキュリティ、ECS、VPC Endpoint、GitHub Actions OIDCを分割して管理 |
+| ネットワーク設計 | ALBをPublic Subnet、ECS TaskをPrivate Subnetに配置し、外部公開の入口をALBに限定 |
+| セキュリティ | Security Groupで `Internet -> ALB -> ECS` の通信経路を制限し、GitHub ActionsはOIDCでAWSへ認証 |
+| コンテナ基盤 | Docker imageをECRへ登録し、ECS Fargateで起動、ALB Target Groupのhealth checkで正常性を確認 |
+| 運用 | CloudWatch Logs確認、ECS desired countの切り替え、`terraform destroy` による削除まで手順化 |
+| コスト管理 | 学習用dev環境では通常 `desired_count = 0` とし、NAT GatewayではなくVPC Endpointを採用 |
+
+面接やレビューでは、以下を説明できることを重視しています。
+
+- なぜECS TaskをPrivate Subnetに置くのか
+- なぜALBだけをPublic Subnetに置くのか
+- なぜNAT GatewayではなくVPC Endpointを使うのか
+- なぜGitHub Actionsに長期Access Keyを置かずOIDCを使うのか
+- なぜ検証後に `terraform destroy` する運用にしているのか
+
 ## 構成
 
 ```mermaid

@@ -49,7 +49,7 @@ Dockerized Node.js API
 Dockerイメージの流れは以下です。
 
 ```text
-Local Docker Build
+GitHub Actions Deploy workflow
   |
   v
 Amazon ECR
@@ -57,6 +57,8 @@ Amazon ECR
   v
 ECS Fargate Task
 ```
+
+GitHub ActionsはOIDCでAWSのDeploy Roleを引き受け、Docker imageをECRへpushし、ECS Serviceへ新しいデプロイを指示します。
 
 ECS TaskはPrivate Subnetに配置します。
 外部からの入口はPublic Subnet上のALBに限定します。
@@ -407,7 +409,7 @@ dev環境固有のprovider設定、変数、module呼び出し、outputsを持�
 - ECR push用IAM Policy
 - ECS Service update用IAM Policy
 
-GitHub Actions OIDC Roleは、dev環境で作成済みです。
+GitHub Actions OIDC Roleは、dev環境で作成します。
 
 ```hcl
 enable_github_oidc = true
@@ -415,7 +417,8 @@ github_repository  = "Toridesu/aws-platform-portfolio"
 github_branch      = "main"
 ```
 
-このRoleは、今後GitHub ActionsからECR pushとECS Service updateを行うために使います。
+このRoleは、GitHub ActionsからECR pushとECS Service updateを行うために使います。
+`terraform destroy` 後はRoleも削除されるため、Deploy workflowを再実行する前に `terraform apply` で再作成します。
 
 ## 検証済み内容
 
@@ -436,7 +439,8 @@ github_branch      = "main"
 - ECR削除時の `force_delete = true` 対応
 - GitHub Actions OIDC IAM Role moduleの追加
 - GitHub Actions OIDC IAM Role作成
-- GitHub ActionsによるECR push / ECS deploy workflow追加
+- GitHub ActionsによるECR push / ECS deploy workflow成功
+- destroy後にTerraform管理リソースが残っていないことの確認
 
 ## 現時点で作らないもの
 
