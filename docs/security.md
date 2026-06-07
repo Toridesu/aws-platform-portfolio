@@ -254,7 +254,7 @@ RDSや外部APIを追加する場合は、環境変数へ直接秘密情報を�
 
 ### GitHub Actions OIDC
 
-GitHub Actions OIDC用のIAM Roleは作成済みです。
+GitHub Actions OIDC用のIAM RoleはTerraformで作成します。
 
 ```hcl
 enable_github_oidc = true
@@ -263,6 +263,7 @@ github_branch      = "main"
 ```
 
 このRoleは、長期Access Keyを使わず、GitHub ActionsからOIDCで一時認証情報を取得するためのものです。
+`terraform destroy` 後はRoleも削除されるため、Deploy workflowを再実行する前に `terraform apply` で再作成します。
 
 現在想定している権限は以下です。
 
