@@ -500,7 +500,7 @@ terraform state list
 
 GitHub ActionsからAWSへデプロイする場合は、長期Access KeyではなくOIDCを使います。
 
-現在、dev環境ではGitHub Actions OIDC Roleを作成済みです。
+dev環境では、TerraformでGitHub Actions OIDC Roleを作成します。
 
 ```hcl
 enable_github_oidc = true
@@ -516,6 +516,8 @@ terraform output github_actions_role_arn
 ```
 
 このRole ARNをGitHub ActionsのAWS認証設定で使用します。
+
+`terraform destroy` 後はRoleも削除されるため、Deploy workflowを再実行する前に `terraform apply` で再作成します。
 
 ## GitHub Actions deploy workflow
 
