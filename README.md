@@ -359,13 +359,14 @@ force_delete = true
 - ECS Fargate task起動
 - ALB Target Group health check
 - ALB経由の `/health` 疎通確認
-- CloudWatch Logsでのログ確認手順整理
+- CloudWatch Logsへの実ログ出力確認
 - ECS desired countを0へ戻す運用
 - `terraform destroy`
 - GitHub Actionsによる検証CI
 - GitHub Actions OIDC IAM Role module
 - GitHub Actions OIDC IAM Role作成
 - GitHub ActionsによるECR push / ECS deploy workflow成功
+- destroy済み状態からの最終再作成・Deploy・疎通確認成功
 - destroy後にTerraform管理リソースが残っていないことの確認
 
 ## 関連ドキュメント
