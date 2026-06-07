@@ -254,6 +254,7 @@ terraform state list
 - ECRはイメージ保存容量に注意する
 - ECR Lifecycle Policyでuntagged imageを1日後に削除し、tagged imageは直近10個を保持する
 - CloudWatch Logsは保持期間を短めにしている
+- CloudWatch AlarmはALB 5xxとunhealthy hostの2個に限定する
 - 最終的に `terraform destroy` で削除できるようにしている
 - ECR削除失敗を防ぐため `force_delete = true` を設定している
 
@@ -302,7 +303,7 @@ Cost Explorerの料金データには反映遅延があります。
 
 ## 今後の改善候補
 
-- CloudWatch Alarmのコストも考慮する
+- CloudWatch Alarm通知用SNSのコストも考慮する
 - AWS Budgetsを設定する
 - `Environment = dev` タグでコストを分類する
 - RDS追加時の停止・削除運用を設計する

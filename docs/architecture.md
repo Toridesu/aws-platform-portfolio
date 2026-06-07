@@ -317,6 +317,16 @@ Health Check : /health
 ALB Target GroupはECS TaskをIPターゲットとして登録します。
 ECS Taskが起動するとTarget Groupに登録され、`/health` が成功すると `healthy` になります。
 
+### CloudWatch Alarm
+
+ALBとTarget Groupの異常を検知するため、以下のCloudWatch Alarmを定義します。
+
+- `HTTPCode_ELB_5XX_Count >= 1`
+- `UnHealthyHostCount >= 1`
+
+dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として扱いません。
+データが存在しない期間も正常扱いにします。
+
 ## Terraform module構成
 
 Terraformは以下の構成です。
@@ -477,10 +487,8 @@ ALB公開後の防御、検知、セキュリティ可視化を強化する段�
 ## 今後の改善候補
 
 - HTTPS化
-- CloudWatch Alarm
 - ECS Exec
 - IAM権限の最小化
-- ECRライフサイクルポリシー
 - README用の構成図画像
 - RDS追加
 - WAF追加

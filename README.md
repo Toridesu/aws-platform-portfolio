@@ -306,6 +306,16 @@ ECS/Fargate上のアプリケーションログはCloudWatch Logsへ出力しま
 - ALB経由のリクエストがAPIまで到達しているか
 - image pullや権限エラーが発生していないか
 
+## 監視
+
+CloudWatch Alarmで以下を監視します。
+
+- ALBが生成したHTTP 5xxレスポンス
+- Target Groupに登録されたunhealthy host
+
+dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として監視しません。
+通知先SNSは環境ごとのメール確認が必要になるため、現時点ではAlarm本体のみTerraformで管理します。
+
 ## 設計上のポイント
 
 ### Public / Private Subnet分離
@@ -373,6 +383,7 @@ force_delete = true
 - GitHub ActionsによるECR push / ECS deploy workflow成功
 - destroy済み状態からの最終再作成・Deploy・疎通確認成功
 - destroy後にTerraform管理リソースが残っていないことの確認
+- CloudWatch AlarmによるALB 5xx / unhealthy host監視
 
 ## 関連ドキュメント
 
@@ -383,7 +394,6 @@ force_delete = true
 
 ## 今後の改善候補
 
-- CloudWatch Alarm追加
 - ECS Execの検討
 - HTTPS化
 - WAF追加

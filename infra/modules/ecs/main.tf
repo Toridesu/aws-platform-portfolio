@@ -145,6 +145,49 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  alarm_name          = "${local.name_prefix}-alb-5xx"
+  alarm_description   = "Detect ALB-generated HTTP 5xx responses."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  threshold           = 1
+  metric_name         = "HTTPCode_ELB_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Sum"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.app.arn_suffix
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-alb-5xx"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
+  alarm_name          = "${local.name_prefix}-unhealthy-hosts"
+  alarm_description   = "Detect unhealthy ECS targets registered with the ALB target group."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  threshold           = 1
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Maximum"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = aws_lb.app.arn_suffix
+    TargetGroup  = aws_lb_target_group.app.arn_suffix
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-unhealthy-hosts"
+  }
+}
+
 resource "aws_ecs_task_definition" "app" {
   family                   = "${local.name_prefix}-api"
   requires_compatibilities = ["FARGATE"]

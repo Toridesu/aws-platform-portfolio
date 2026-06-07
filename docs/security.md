@@ -213,12 +213,16 @@ setting {
 }
 ```
 
+CloudWatch Alarmで以下を監視します。
+
+- ALB 5xxエラー
+- Target Group unhealthy host
+
+dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として扱いません。
+
 今後の改善候補:
 
-- CloudWatch Alarm
-- ALB 5xxエラー監視
-- Target Group unhealthy監視
-- ECS Task停止検知
+- SNSによるAlarm通知
 - CloudWatch Logsのエラー文字列監視
 
 ## 現時点で未実装のセキュリティ項目
