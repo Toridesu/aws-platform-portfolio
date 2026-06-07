@@ -347,6 +347,11 @@ ECRリポジトリ内にDockerイメージが残っていると、通常は `ter
 force_delete = true
 ```
 
+また、不要なDocker imageが増え続けないようにLifecycle Policyを設定しています。
+
+- untagged imageは1日後に削除
+- tagged imageは直近10個を保持
+
 ## 実施済みの検証
 
 - Terraform `fmt`
@@ -383,5 +388,4 @@ force_delete = true
 - HTTPS化
 - WAF追加
 - IAM権限の最小化
-- ECRライフサイクルポリシー
 - RDSをPrivate Subnetに追加

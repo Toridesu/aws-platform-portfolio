@@ -252,6 +252,7 @@ terraform state list
 - NAT Gatewayは学習用では高くなりやすいため採用していない
 - Private SubnetからAWSサービスへはVPC Endpointで到達させている
 - ECRはイメージ保存容量に注意する
+- ECR Lifecycle Policyでuntagged imageを1日後に削除し、tagged imageは直近10個を保持する
 - CloudWatch Logsは保持期間を短めにしている
 - 最終的に `terraform destroy` で削除できるようにしている
 - ECR削除失敗を防ぐため `force_delete = true` を設定している
@@ -301,7 +302,6 @@ Cost Explorerの料金データには反映遅延があります。
 
 ## 今後の改善候補
 
-- ECR Lifecycle Policyを追加する
 - CloudWatch Alarmのコストも考慮する
 - AWS Budgetsを設定する
 - `Environment = dev` タグでコストを分類する
