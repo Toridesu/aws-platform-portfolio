@@ -37,11 +37,11 @@
 ## 未完了
 
 - [x] `terraform.tfvars` でAWS Budgets通知先メールアドレスを設定する
-- [ ] `terraform apply` でAWS Budgetsが実際に作成されることを確認する
-- [ ] `terraform apply` でECR Lifecycle Policyが実際に作成されることを確認する
-- [ ] `terraform apply` でCloudWatch Alarmが実際に作成されることを確認する
-- [ ] GitHub Actions Deploy workflowを再実行して、ECR push / ECS deploy / ALB疎通を再確認する
-- [ ] 確認後に `terraform destroy` して、再びリソースを削除する
+- [x] `terraform apply` でAWS Budgetsが実際に作成されることを確認する
+- [x] `terraform apply` でECR Lifecycle Policyが実際に作成されることを確認する
+- [x] `terraform apply` でCloudWatch Alarmが実際に作成されることを確認する
+- [x] GitHub Actions Deploy workflowを再実行して、ECR push / ECS deploy / ALB疎通を再確認する
+- [x] 確認後に `terraform destroy` して、再びリソースを削除する
 - [ ] CloudWatch AlarmにSNS通知を追加するか判断する
 - [ ] IAM権限をより最小化する
 - [ ] Security Groupのアウトバウンド制御を見直す
