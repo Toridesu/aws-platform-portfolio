@@ -256,11 +256,53 @@ terraform state list
 - 最終的に `terraform destroy` で削除できるようにしている
 - ECR削除失敗を防ぐため `force_delete = true` を設定している
 
+## Cost Explorer実測結果
+
+2026年6月7日に、2026年6月1日から2026年6月7日までの推定料金をCost Explorerで確認しました。
+
+確認コマンド:
+
+```bash
+aws ce get-cost-and-usage \
+  --time-period Start=2026-06-01,End=2026-06-08 \
+  --granularity MONTHLY \
+  --metrics UnblendedCost \
+  --group-by Type=DIMENSION,Key=SERVICE
+```
+
+確認できた推定料金:
+
+| 項目 | 金額 |
+| --- | ---: |
+| Amazon Virtual Private Cloud | 約 `$0.08439` |
+| Amazon Elastic Container Service | 約 `$0.00184` |
+| Amazon GuardDuty | 約 `$0.00255` |
+| Tax | `$0.01` |
+| その他 | ほぼ `$0` |
+| 合計 | 約 `$0.0988` |
+
+ポートフォリオ構成に直接対応する確認済み料金は、VPCとECSを合わせて約 `$0.0862` です。
+
+VPC料金の主な内訳:
+
+| Usage Type | 金額 |
+| --- | ---: |
+| VPC Endpoint Hours | `$0.0840` |
+| Idle Public IPv4 | 約 `$0.000385` |
+| VPC Endpoint Bytes | 約 `$0.00000168` |
+
+今回の短時間検証では、料金の大部分がInterface VPC Endpointの時間料金でした。
+ECS/Fargate Taskを短時間だけ起動した料金は、VPC Endpointより小さい結果でした。
+
+Cost Explorerの料金データには反映遅延があります。
+2026年6月7日に実行した最終再作成テスト分は、確認時点ではまだ反映されていない可能性があります。
+
+また、GuardDutyはこのポートフォリオとは別の料金であり、destroy後も日次料金が確認されています。
+
 ## 今後の改善候補
 
 - ECR Lifecycle Policyを追加する
 - CloudWatch Alarmのコストも考慮する
 - AWS Budgetsを設定する
-- Cost Explorerでタグ別コストを確認する
 - `Environment = dev` タグでコストを分類する
 - RDS追加時の停止・削除運用を設計する
