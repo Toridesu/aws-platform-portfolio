@@ -36,7 +36,7 @@
 
 ## 未完了
 
-- [ ] `terraform.tfvars` でAWS Budgets通知先メールアドレスを設定する
+- [x] `terraform.tfvars` でAWS Budgets通知先メールアドレスを設定する
 - [ ] `terraform apply` でAWS Budgetsが実際に作成されることを確認する
 - [ ] `terraform apply` でECR Lifecycle Policyが実際に作成されることを確認する
 - [ ] `terraform apply` でCloudWatch Alarmが実際に作成されることを確認する
