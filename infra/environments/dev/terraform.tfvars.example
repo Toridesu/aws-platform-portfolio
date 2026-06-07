@@ -26,3 +26,11 @@ ecs_desired_count = 0
 enable_github_oidc = false
 # github_repository  = "Toridesu/aws-platform-portfolio"
 # github_branch      = "main"
+
+# Enable this only when you want Terraform to create an AWS Budget.
+# Budget monitoring and notifications are free, but Budget Actions and Budget Reports are not used here.
+enable_budget = false
+# budget_monthly_limit_usd            = "5"
+# budget_notification_email           = "your-email@example.com"
+# budget_actual_threshold_percent     = 80
+# budget_forecasted_threshold_percent = 100

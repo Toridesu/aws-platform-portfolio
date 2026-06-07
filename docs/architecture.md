@@ -23,6 +23,7 @@
 - Listener
 - ECS Task Execution Role
 - GitHub Actions OIDC IAM Role module
+- AWS Budgets
 
 RDS、WAF、GuardDuty、Security Hub、HTTPS化はまだ未実装です。
 
@@ -340,6 +341,10 @@ infra/
       outputs.tf
       terraform.tfvars.example
   modules/
+    budgets/
+      main.tf
+      variables.tf
+      outputs.tf
     network/
       main.tf
       variables.tf
@@ -430,6 +435,26 @@ github_branch      = "main"
 このRoleは、GitHub ActionsからECR pushとECS Service updateを行うために使います。
 `terraform destroy` 後はRoleも削除されるため、Deploy workflowを再実行する前に `terraform apply` で再作成します。
 
+### modules/budgets
+
+以下を定義します。
+
+- 月額コストBudget
+- 実績コストがしきい値を超えた場合のメール通知
+- 予測コストがしきい値を超えた場合のメール通知
+
+Budgetは個人のメールアドレスを使うため、デフォルトでは無効です。
+有効化する場合は `terraform.tfvars` で以下を設定します。
+
+```hcl
+enable_budget             = true
+budget_monthly_limit_usd  = "5"
+budget_notification_email = "your-email@example.com"
+```
+
+Budget ActionsとBudget Reportsは使いません。
+目的はリソースを自動停止することではなく、想定外の課金を早めに検知することです。
+
 ## 検証済み内容
 
 以下を実施済みです。
@@ -451,6 +476,7 @@ github_branch      = "main"
 - GitHub Actions OIDC IAM Role作成
 - GitHub ActionsによるECR push / ECS deploy workflow成功
 - destroy後にTerraform管理リソースが残っていないことの確認
+- AWS Budgets moduleの追加
 
 ## 現時点で作らないもの
 

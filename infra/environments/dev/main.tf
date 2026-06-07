@@ -89,3 +89,15 @@ module "github_oidc" {
   ecs_cluster_arn    = local.ecs_cluster_arn
   ecs_service_arn    = local.ecs_service_arn
 }
+
+module "budgets" {
+  source = "../../modules/budgets"
+
+  enabled                      = var.enable_budget
+  project_name                 = var.project_name
+  environment                  = var.environment
+  monthly_limit_usd            = var.budget_monthly_limit_usd
+  notification_email           = var.budget_notification_email
+  actual_threshold_percent     = var.budget_actual_threshold_percent
+  forecasted_threshold_percent = var.budget_forecasted_threshold_percent
+}

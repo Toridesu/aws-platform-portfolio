@@ -15,6 +15,7 @@
 - VPC EndpointによるPrivate SubnetからのAWSサービス到達
 - GitHub Actions OIDCによる長期Access Keyを使わないデプロイ
 - 検証後に `terraform destroy` で削除できる運用
+- AWS Budgetsによる月額コスト監視
 
 ## このポートフォリオで証明すること
 
@@ -26,7 +27,7 @@
 | ネットワーク設計 | ALBをPublic Subnet、ECS TaskをPrivate Subnetに配置し、外部公開の入口をALBに限定 |
 | セキュリティ | Security Groupで `Internet -> ALB -> ECS` の通信経路を制限し、GitHub ActionsはOIDCでAWSへ認証 |
 | コンテナ基盤 | Docker imageをECRへ登録し、ECS Fargateで起動、ALB Target Groupのhealth checkで正常性を確認 |
-| 運用 | CloudWatch Logs確認、ECS desired countの切り替え、`terraform destroy` による削除まで手順化 |
+| 運用 | CloudWatch Logs確認、CloudWatch Alarm、ECS desired countの切り替え、`terraform destroy` による削除まで手順化 |
 | コスト管理 | 学習用dev環境では通常 `desired_count = 0` とし、NAT GatewayではなくVPC Endpointを採用 |
 
 面接やレビューでは、以下を説明できることを重視しています。
@@ -133,6 +134,7 @@ Private Subnet上のECSタスクがECRからイメージをpullし、CloudWatch 
         ├── ecs/
         ├── endpoints/
         ├── github_oidc/
+        ├── budgets/
         ├── network/
         └── security/
 ```
@@ -316,6 +318,22 @@ CloudWatch Alarmで以下を監視します。
 dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として監視しません。
 通知先SNSは環境ごとのメール確認が必要になるため、現時点ではAlarm本体のみTerraformで管理します。
 
+## コスト監視
+
+AWS Budgetsで月額コストを監視できるようにしています。
+
+Budgetは個人のメールアドレスへ通知するため、デフォルトでは無効です。
+有効化する場合は `terraform.tfvars` に以下を設定します。
+
+```hcl
+enable_budget             = true
+budget_monthly_limit_usd  = "5"
+budget_notification_email = "your-email@example.com"
+```
+
+この構成ではBudget ActionsとBudget Reportsは使いません。
+月額コストのBudget通知だけを使い、想定外の課金に気づくための最低限の設定にしています。
+
 ## 設計上のポイント
 
 ### Public / Private Subnet分離
@@ -384,6 +402,7 @@ force_delete = true
 - destroy済み状態からの最終再作成・Deploy・疎通確認成功
 - destroy後にTerraform管理リソースが残っていないことの確認
 - CloudWatch AlarmによるALB 5xx / unhealthy host監視
+- AWS Budgetsによる月額コスト監視
 
 ## 関連ドキュメント
 

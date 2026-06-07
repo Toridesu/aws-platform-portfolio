@@ -161,6 +161,34 @@ log_retention_days = 7
 
 追加する場合は、短時間検証または停止可能な構成を前提にします。
 
+### AWS Budgets
+
+AWS Budgetsで月額コストを監視できるようにしています。
+
+設定内容:
+
+- 月額上限: デフォルト `$5`
+- 実績コスト通知: 80%
+- 予測コスト通知: 100%
+- 通知先: `terraform.tfvars` で指定するメールアドレス
+
+Budgetは個人のメールアドレスを使うため、デフォルトでは無効です。
+
+```hcl
+enable_budget             = true
+budget_monthly_limit_usd  = "5"
+budget_notification_email = "your-email@example.com"
+```
+
+今回使うのは通常のBudget監視とメール通知のみです。
+Budget ActionsとBudget Reportsは使いません。
+
+コスト管理方針:
+
+- 想定外の課金を早めに検知する
+- 自動停止ではなく、通知を受けて手動確認する
+- 個人メールアドレスはGit管理しない `terraform.tfvars` にだけ書く
+
 ## 短時間検証時の考え方
 
 短時間だけAPI疎通を確認する場合、主に発生するのは以下です。
@@ -255,6 +283,7 @@ terraform state list
 - ECR Lifecycle Policyでuntagged imageを1日後に削除し、tagged imageは直近10個を保持する
 - CloudWatch Logsは保持期間を短めにしている
 - CloudWatch AlarmはALB 5xxとunhealthy hostの2個に限定する
+- AWS Budgetsで月額コストの実績・予測を監視する
 - 最終的に `terraform destroy` で削除できるようにしている
 - ECR削除失敗を防ぐため `force_delete = true` を設定している
 
@@ -304,6 +333,5 @@ Cost Explorerの料金データには反映遅延があります。
 ## 今後の改善候補
 
 - CloudWatch Alarm通知用SNSのコストも考慮する
-- AWS Budgetsを設定する
 - `Environment = dev` タグでコストを分類する
 - RDS追加時の停止・削除運用を設計する

@@ -57,3 +57,8 @@ output "alb_dns_name" {
   description = "Application Load Balancer DNS name."
   value       = module.ecs.alb_dns_name
 }
+
+output "budget_name" {
+  description = "AWS Budget name."
+  value       = module.budgets.budget_name
+}

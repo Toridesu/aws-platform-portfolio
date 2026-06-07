@@ -63,3 +63,34 @@ variable "github_branch" {
   type        = string
   default     = "main"
 }
+
+variable "enable_budget" {
+  description = "Whether to create an AWS Budget for monthly cost monitoring."
+  type        = bool
+  default     = false
+}
+
+variable "budget_monthly_limit_usd" {
+  description = "Monthly budget limit in USD."
+  type        = string
+  default     = "5"
+}
+
+variable "budget_notification_email" {
+  description = "Email address that receives AWS Budget notifications."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "budget_actual_threshold_percent" {
+  description = "Actual cost threshold percentage for AWS Budget notification."
+  type        = number
+  default     = 80
+}
+
+variable "budget_forecasted_threshold_percent" {
+  description = "Forecasted cost threshold percentage for AWS Budget notification."
+  type        = number
+  default     = 100
+}
