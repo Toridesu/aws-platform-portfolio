@@ -328,6 +328,14 @@ ALBとTarget Groupの異常を検知するため、以下のCloudWatch Alarmを�
 dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として扱いません。
 データが存在しない期間も正常扱いにします。
 
+現時点ではCloudWatch AlarmにSNS通知は接続しません。
+理由は以下です。
+
+- dev環境は短時間検証後に削除する運用である
+- 個人メールアドレスの確認が必要な通知先を増やしすぎない
+- コスト検知はAWS Budgetsのメール通知で優先的に扱う
+- 常時稼働や本番相当の運用に近づける段階で、SNS通知を追加すればよい
+
 ## Terraform module構成
 
 Terraformは以下の構成です。

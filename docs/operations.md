@@ -384,6 +384,24 @@ aws logs get-log-events `
 - `CannotPullContainerError` や権限エラーが出ていないか
 - ログが出ない場合、CloudWatch Logs VPC Endpoint、Task Execution Role、Security Groupを確認する
 
+## CloudWatch Alarm通知方針
+
+CloudWatch Alarmは以下を監視します。
+
+- ALBが生成したHTTP 5xx
+- Target Groupのunhealthy host
+
+現時点ではSNS通知は追加していません。
+
+理由:
+
+- dev環境は短時間検証後に `terraform destroy` する運用である
+- Alarm本体の作成・検証は完了している
+- 想定外の課金通知はAWS Budgetsで扱う
+- メール通知先を増やすと確認・管理対象が増える
+
+常時稼働や本番相当の運用に近づける場合は、SNS Topic、Email Subscription、Alarm Actionを追加します。
+
 ## よくあるトラブル
 
 ### AWS認証エラー

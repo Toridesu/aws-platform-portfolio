@@ -318,6 +318,10 @@ CloudWatch Alarmで以下を監視します。
 dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として監視しません。
 通知先SNSは環境ごとのメール確認が必要になるため、現時点ではAlarm本体のみTerraformで管理します。
 
+SNS通知は現時点では追加しません。
+このdev環境は短時間検証後に `terraform destroy` する前提であり、常時稼働サービスとして即時通知を受ける段階ではないためです。
+想定外の課金検知はAWS Budgetsのメール通知を優先し、CloudWatch AlarmのSNS通知は常時稼働や本番想定に近づける段階で追加します。
+
 ## コスト監視
 
 AWS Budgetsで月額コストを監視できるようにしています。

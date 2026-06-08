@@ -39,10 +39,10 @@
 - [x] `terraform apply` でCloudWatch Alarmが実際に作成されることを確認する
 - [x] GitHub Actions Deploy workflowを再実行して、ECR push / ECS deploy / ALB疎通を再確認する
 - [x] 確認後に `terraform destroy` して、再びリソースを削除する
+- [x] CloudWatch AlarmにSNS通知を追加するか判断する
 
 ## 未完了
 
-- [ ] CloudWatch AlarmにSNS通知を追加するか判断する
 - [ ] IAM権限をより最小化する
 - [ ] Security Groupのアウトバウンド制御を見直す
 - [ ] Cost Explorerで数日後に不要な課金が残っていないか確認する
