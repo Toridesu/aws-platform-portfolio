@@ -4,7 +4,22 @@
 
 このリポジトリは、AWS上にコンテナアプリケーション基盤をTerraformで構築するポートフォリオです。
 
-主目的は、アプリケーション開発ではなく、以下の設計・構築スキルを示すことです。
+主目的は、アプリケーション開発ではなく、AWS上でコンテナ実行基盤を設計、構築、検証、削除できることを示すことです。
+
+## ポートフォリオ説明
+
+このポートフォリオでは、Node.js APIをDocker化し、Amazon ECRへ登録し、ECS Fargate上で実行します。
+外部公開はApplication Load Balancerに限定し、ECS TaskはPrivate Subnetに配置します。
+
+Private SubnetからECRとCloudWatch Logsへ到達するために、NAT GatewayではなくVPC Endpointを使います。
+これにより、Private Subnet構成を維持しながら、学習用環境としてコストを抑えたコンテナ基盤を構築しています。
+
+CI/CDはGitHub Actionsで構成し、AWS認証には長期Access KeyではなくOIDCを使います。
+Deploy workflowは手動実行に限定し、ECR pushとECS Service更新を行います。
+
+運用面では、CloudWatch Logs、CloudWatch Alarm、ECR Lifecycle Policy、AWS Budgetsを導入し、検証後は `terraform destroy` で全リソースを削除する方針にしています。
+
+このリポジトリで示すスキルは以下です。
 
 - TerraformによるInfrastructure as Code
 - VPC / Public Subnet / Private Subnetのネットワーク設計
@@ -16,6 +31,51 @@
 - GitHub Actions OIDCによる長期Access Keyを使わないデプロイ
 - 検証後に `terraform destroy` で削除できる運用
 - AWS Budgetsによる月額コスト監視
+
+## 最終確認済みの実行フロー
+
+以下の流れで、作成、デプロイ、疎通確認、削除まで確認済みです。
+
+```text
+1. terraform init / fmt / validate
+2. terraform apply
+3. GitHub Actions Deploy workflowを手動実行
+4. ECRへDocker image push
+5. ECS Serviceをforce new deployment
+6. ECS Taskをdesired_count = 1で起動
+7. ALB Target Groupのhealthy確認
+8. ALB経由で /health のHTTP 200確認
+9. terraform destroy
+10. terraform plan -destroyで残リソースなし確認
+11. terraform state listでstateが空であることを確認
+```
+
+代表的な確認コマンド:
+
+```bash
+cd infra/environments/dev
+terraform init
+terraform fmt -recursive ../..
+terraform validate
+terraform apply
+```
+
+Deploy workflow実行後、API疎通確認時だけECS Taskを1台起動します。
+
+```bash
+terraform apply -auto-approve -var ecs_desired_count=1
+curl http://$(terraform output -raw alb_dns_name)/health
+```
+
+確認後はリソースを削除します。
+
+```bash
+terraform destroy
+terraform plan -destroy
+terraform state list
+```
+
+最終確認では、`/health` がHTTP 200を返し、destroy後にTerraform管理リソースが残っていないことを確認しています。
 
 ## このポートフォリオで証明すること
 
@@ -222,6 +282,15 @@ terraform apply
 terraform destroy
 ```
 
+削除後の確認:
+
+```bash
+terraform plan -destroy
+terraform state list
+```
+
+`terraform plan -destroy` が `No changes`、`terraform state list` が空であれば、Terraform管理下のリソースは残っていません。
+
 ## CI
 
 GitHub Actionsで以下の検証を行います。
@@ -424,6 +493,23 @@ force_delete = true
 - ECS Task Execution Roleの権限最小化
 - ECS Task Security Groupのアウトバウンド制御見直し
 
+最終確認結果:
+
+| 項目 | 結果 |
+| --- | --- |
+| Terraform apply | 成功 |
+| AWS Budgets作成 | 成功 |
+| ECR Lifecycle Policy作成 | 成功 |
+| CloudWatch Alarm作成 | 成功 |
+| GitHub Actions Deploy workflow | 成功 |
+| ECR push | 成功 |
+| ECS deploy | 成功 |
+| ECS Task起動 | 成功 |
+| ALB Target Group healthy | 成功 |
+| ALB `/health` 疎通 | HTTP 200 |
+| Terraform destroy | 成功 |
+| destroy後の残リソース確認 | `No changes` |
+
 ## 関連ドキュメント
 
 - [アーキテクチャ](docs/architecture.md)
@@ -436,5 +522,4 @@ force_delete = true
 - ECS Execの検討
 - HTTPS化
 - WAF追加
-- IAM権限の最小化
 - RDSをPrivate Subnetに追加
