@@ -46,6 +46,7 @@ module "security" {
 
   project_name   = var.project_name
   environment    = var.environment
+  aws_region     = var.aws_region
   vpc_id         = module.network.vpc_id
   container_port = 3000
 }

@@ -353,10 +353,12 @@ ALBはPublic Subnetに配置し、ECSタスクはPrivate Subnetに配置して�
 ```text
 Internet -> ALB : TCP 80
 ALB -> ECS Task : TCP 3000
-ECS Task -> VPC Endpoint : TCP 443
+ECS Task -> Interface VPC Endpoint : TCP 443
+ECS Task -> S3 prefix list : TCP 443
 ```
 
 ECSタスクはALBからの通信のみ受ける設計です。
+ECSタスクのアウトバウンドも `0.0.0.0/0 all traffic` ではなく、ECR / CloudWatch Logs用のInterface VPC Endpointと、ECR image layer取得で必要になるS3 prefix listへのHTTPS通信に絞っています。
 
 ### IAM権限の最小化
 
@@ -420,6 +422,7 @@ force_delete = true
 - CloudWatch AlarmによるALB 5xx / unhealthy host監視
 - AWS Budgetsによる月額コスト監視
 - ECS Task Execution Roleの権限最小化
+- ECS Task Security Groupのアウトバウンド制御見直し
 
 ## 関連ドキュメント
 

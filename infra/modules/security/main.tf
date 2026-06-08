@@ -1,3 +1,7 @@
+data "aws_ec2_managed_prefix_list" "s3" {
+  name = "com.amazonaws.${var.aws_region}.s3"
+}
+
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-${var.environment}-alb-sg"
   description = "Security group for the public Application Load Balancer."
@@ -61,12 +65,24 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   to_port     = var.container_port
 }
 
-resource "aws_vpc_security_group_egress_rule" "ecs_all_outbound" {
-  security_group_id = aws_security_group.ecs.id
-  description       = "Allow ECS tasks to reach required AWS services and external endpoints."
+resource "aws_vpc_security_group_egress_rule" "ecs_https_to_vpc_endpoints" {
+  security_group_id            = aws_security_group.ecs.id
+  referenced_security_group_id = aws_security_group.vpc_endpoint.id
+  description                  = "Allow ECS tasks to reach interface VPC endpoints over HTTPS."
 
-  ip_protocol = "-1"
-  cidr_ipv4   = "0.0.0.0/0"
+  ip_protocol = "tcp"
+  from_port   = 443
+  to_port     = 443
+}
+
+resource "aws_vpc_security_group_egress_rule" "ecs_https_to_s3" {
+  security_group_id = aws_security_group.ecs.id
+  prefix_list_id    = data.aws_ec2_managed_prefix_list.s3.id
+  description       = "Allow ECS tasks to reach S3 over HTTPS for ECR image layer downloads."
+
+  ip_protocol = "tcp"
+  from_port   = 443
+  to_port     = 443
 }
 
 resource "aws_vpc_security_group_ingress_rule" "vpc_endpoint_https_from_ecs" {

@@ -43,6 +43,12 @@ ECS Security Group
   | TCP :443
   v
 VPC Endpoint Security Group
+
+ECS Security Group
+  |
+  | TCP :443
+  v
+S3 managed prefix list
 ```
 
 アプリケーション本体であるECS TaskはPrivate Subnetに配置します。
@@ -88,7 +94,8 @@ ALB Security Group -> ECS Security Group TCP 3000
 許可するアウトバウンド:
 
 ```text
-ECS Security Group -> 0.0.0.0/0 all traffic
+ECS Security Group -> VPC Endpoint Security Group TCP 443
+ECS Security Group -> S3 managed prefix list TCP 443
 ```
 
 設計意図:
@@ -97,14 +104,10 @@ ECS Security Group -> 0.0.0.0/0 all traffic
 - アプリケーションへの入口をALBに集約する
 - ECS Taskへインターネットから直接到達できないようにする
 
-ECSのアウトバウンドは現時点では広めに許可しています。
-ただし、NAT Gatewayを作っていないため、Private Subnetからインターネットへ自由に出られる構成ではありません。
-
-ECRやCloudWatch Logsなど、必要なAWSサービスへの通信はVPC Endpoint経由で行います。
+ECSのアウトバウンドは、ECR API、ECR Docker Registry、CloudWatch Logs用のInterface Endpointと、ECR image layer取得で必要になるS3 managed prefix listへのHTTPS通信に絞っています。
 
 今後の改善候補:
 
-- ECSのアウトバウンドをVPC Endpointや必要な通信先に絞る
 - 外部API接続が必要になった場合、NAT GatewayやPrivateLinkを再検討する
 
 ## VPC Endpoint Security Group
@@ -299,6 +302,7 @@ push時に自動でAWSへ反映するのではなく、明示的に実行した�
 - ALBだけを外部公開している
 - ECS TaskはPrivate Subnetに配置している
 - ECS TaskはALBからの通信だけを受ける
+- ECS Taskのアウトバウンドも必要なAWSサービス通信に絞っている
 - ECR / CloudWatch Logsへの到達はVPC Endpoint経由にしている
 - NAT Gatewayを使わず、必要なAWSサービスへの通信に絞っている
 - Task Execution RoleとTask Roleの違いを理解している

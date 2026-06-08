@@ -157,6 +157,7 @@ ECS TaskにはPublic IPを付与しません。
 Internet -> ALB Security Group : TCP 80
 ALB Security Group -> ECS Security Group : TCP 3000
 ECS Security Group -> VPC Endpoint Security Group : TCP 443
+ECS Security Group -> S3 managed prefix list : TCP 443
 ```
 
 ### ALB Security Group
@@ -186,11 +187,11 @@ Inbound:
   ALB Security Group -> ECS Security Group TCP 3000
 
 Outbound:
-  0.0.0.0/0 all traffic
+  ECS Security Group -> VPC Endpoint Security Group TCP 443
+  ECS Security Group -> S3 managed prefix list TCP 443
 ```
 
-ECS TaskのOutboundは現時点では広めに許可しています。
-ただし、Private SubnetにNAT Gatewayを置いていないため、実際のAWSサービス到達はVPC Endpoint経由が中心です。
+ECS TaskのOutboundは、ECR API、ECR Docker Registry、CloudWatch Logs用のInterface Endpointと、ECR image layer取得で必要になるS3に絞っています。
 
 ### VPC Endpoint Security Group
 
@@ -496,6 +497,7 @@ Budget ActionsとBudget Reportsは使いません。
 - destroy後にTerraform管理リソースが残っていないことの確認
 - AWS Budgets moduleの追加
 - ECS Task Execution Roleのカスタムポリシー化
+- ECS Task Security Groupのアウトバウンド制御見直し
 
 ## 現時点で作らないもの
 

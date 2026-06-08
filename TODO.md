@@ -42,10 +42,10 @@
 - [x] CloudWatch AlarmにSNS通知を追加するか判断する
 - [x] Cost Explorerで数日後に不要な課金が残っていないか確認する
 - [x] IAM権限をより最小化する
+- [x] Security Groupのアウトバウンド制御を見直す
 
 ## 未完了
 
-- [ ] Security Groupのアウトバウンド制御を見直す
 - [ ] READMEに最終的な実行手順と検証結果を整理する
 - [ ] ポートフォリオとして見せる用の説明文を整理する
 
