@@ -33,15 +33,15 @@
 - [x] `terraform plan -destroy` で残リソースなしを確認する
 - [x] ECRが空でない場合のdestroy失敗原因を理解する
 - [x] Cost Explorerで現時点の課金を確認する
-
-## 未完了
-
 - [x] `terraform.tfvars` でAWS Budgets通知先メールアドレスを設定する
 - [x] `terraform apply` でAWS Budgetsが実際に作成されることを確認する
 - [x] `terraform apply` でECR Lifecycle Policyが実際に作成されることを確認する
 - [x] `terraform apply` でCloudWatch Alarmが実際に作成されることを確認する
 - [x] GitHub Actions Deploy workflowを再実行して、ECR push / ECS deploy / ALB疎通を再確認する
 - [x] 確認後に `terraform destroy` して、再びリソースを削除する
+
+## 未完了
+
 - [ ] CloudWatch AlarmにSNS通知を追加するか判断する
 - [ ] IAM権限をより最小化する
 - [ ] Security Groupのアウトバウンド制御を見直す
