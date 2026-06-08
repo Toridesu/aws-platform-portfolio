@@ -25,7 +25,7 @@
 | --- | --- |
 | IaC | Terraform moduleでネットワーク、セキュリティ、ECS、VPC Endpoint、GitHub Actions OIDCを分割して管理 |
 | ネットワーク設計 | ALBをPublic Subnet、ECS TaskをPrivate Subnetに配置し、外部公開の入口をALBに限定 |
-| セキュリティ | Security Groupで `Internet -> ALB -> ECS` の通信経路を制限し、GitHub ActionsはOIDCでAWSへ認証 |
+| セキュリティ | Security Groupで `Internet -> ALB -> ECS` の通信経路を制限し、GitHub ActionsはOIDCでAWSへ認証、ECS Task Execution Roleは必要なECR/Logs権限に限定 |
 | コンテナ基盤 | Docker imageをECRへ登録し、ECS Fargateで起動、ALB Target Groupのhealth checkで正常性を確認 |
 | 運用 | CloudWatch Logs確認、CloudWatch Alarm、ECS desired countの切り替え、`terraform destroy` による削除まで手順化 |
 | コスト管理 | 学習用dev環境では通常 `desired_count = 0` とし、NAT GatewayではなくVPC Endpointを採用 |
@@ -358,6 +358,18 @@ ECS Task -> VPC Endpoint : TCP 443
 
 ECSタスクはALBからの通信のみ受ける設計です。
 
+### IAM権限の最小化
+
+ECS Task Execution Roleは、AWS管理ポリシーではなくTerraformで定義したカスタムポリシーを使います。
+
+許可する操作は以下に限定しています。
+
+- ECR認証トークン取得
+- このアプリケーション用ECR Repositoryからのimage pull
+- このアプリケーション用CloudWatch Log Groupへのログ出力
+
+GitHub Actions Deploy Roleも、OIDCの引き受け元をこのリポジトリの `main` ブランチに限定し、ECR pushとECS Service更新に必要な権限だけを付与しています。
+
 ### VPC Endpoint
 
 Private Subnet上のECSタスクがECRとCloudWatch Logsへ到達するため、以下を作成しています。
@@ -407,6 +419,7 @@ force_delete = true
 - destroy後にTerraform管理リソースが残っていないことの確認
 - CloudWatch AlarmによるALB 5xx / unhealthy host監視
 - AWS Budgetsによる月額コスト監視
+- ECS Task Execution Roleの権限最小化
 
 ## 関連ドキュメント
 

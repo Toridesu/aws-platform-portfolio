@@ -94,9 +94,42 @@ resource "aws_iam_role" "task_execution" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "task_execution" {
-  role       = aws_iam_role.task_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+resource "aws_iam_role_policy" "task_execution" {
+  name = "${local.name_prefix}-ecs-task-execution-policy"
+  role = aws_iam_role.task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "GetEcrAuthorizationToken"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "PullImageFromApplicationRepository"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer"
+        ]
+        Resource = aws_ecr_repository.app.arn
+      },
+      {
+        Sid    = "WriteApplicationLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.app.arn}:*"
+      }
+    ]
+  })
 }
 
 resource "aws_lb" "app" {
@@ -246,7 +279,7 @@ resource "aws_ecs_service" "app" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.task_execution,
+    aws_iam_role_policy.task_execution,
     aws_lb_listener.http
   ]
 

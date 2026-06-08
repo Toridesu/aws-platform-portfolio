@@ -24,7 +24,6 @@
 - GuardDuty
 - Security Hub
 - ECS Exec
-- IAM権限の細分化
 
 ## 通信設計
 
@@ -150,16 +149,30 @@ ECRのイメージレイヤー取得でS3への到達が必要になるためで
 - ECRからDockerイメージをpullする
 - CloudWatch Logsへログを書き込む
 
-現在はAWS管理ポリシーの以下を付与しています。
+AWS管理ポリシーは使わず、Terraformで定義したカスタムポリシーを付与しています。
+
+許可する権限:
 
 ```text
-AmazonECSTaskExecutionRolePolicy
+ecr:GetAuthorizationToken
+ecr:BatchCheckLayerAvailability
+ecr:BatchGetImage
+ecr:GetDownloadUrlForLayer
+logs:CreateLogStream
+logs:PutLogEvents
 ```
+
+権限範囲:
+
+- `ecr:GetAuthorizationToken` はAWS仕様上Resourceを `*` にする必要がある
+- image pull権限はアプリケーション用ECR Repositoryに限定する
+- logs書き込み権限はアプリケーション用CloudWatch Log Group配下に限定する
 
 設計意図:
 
 - アプリケーションコンテナではなく、ECSのタスク起動処理に必要な権限を付与する
 - ECR pullとCloudWatch Logs出力を可能にする
+- ECS Taskが任意のECR RepositoryやLog Groupへアクセスできる範囲を減らす
 
 今後、アプリケーションがAWSサービスへアクセスする場合は、Task Roleを別途作成します。
 Task Execution RoleとTask Roleは役割が異なります。
@@ -289,6 +302,7 @@ push時に自動でAWSへ反映するのではなく、明示的に実行した�
 - ECR / CloudWatch Logsへの到達はVPC Endpoint経由にしている
 - NAT Gatewayを使わず、必要なAWSサービスへの通信に絞っている
 - Task Execution RoleとTask Roleの違いを理解している
+- ECS Task Execution Roleの権限をECR pullとCloudWatch Logs出力に限定している
 - ECR image scanを有効化している
 - destroy時のECR削除問題に対応している
 - HTTPS、WAF、Secrets Managerなど未実装項目も認識している

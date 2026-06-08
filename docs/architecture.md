@@ -282,6 +282,16 @@ Task Definitionは、コンテナをどう起動するかを定義します。
 
 今回のAPIはコンテナ内で3000番ポートをListenします。
 
+Task Execution Roleは、AWS管理ポリシーではなくカスタムポリシーを使います。
+
+許可する権限:
+
+- `ecr:GetAuthorizationToken`
+- アプリケーション用ECR Repositoryに対するimage pull権限
+- アプリケーション用CloudWatch Log Groupへのログ出力権限
+
+これにより、ECS Taskが任意のECR Repositoryや任意のLog Groupへアクセスできる状態を避けています。
+
 ### ECS Service
 
 ECS Serviceは、指定した数のTaskを維持する仕組みです。
@@ -485,6 +495,7 @@ Budget ActionsとBudget Reportsは使いません。
 - GitHub ActionsによるECR push / ECS deploy workflow成功
 - destroy後にTerraform管理リソースが残っていないことの確認
 - AWS Budgets moduleの追加
+- ECS Task Execution Roleのカスタムポリシー化
 
 ## 現時点で作らないもの
 
