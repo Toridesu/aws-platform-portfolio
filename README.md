@@ -89,8 +89,6 @@ terraform plan -destroy
 terraform state list
 ```
 
-詳しい構築・運用手順は [運用ドキュメント](docs/operations.md) を参照してください。
-
 ## CI/CD
 
 ### Validate workflow
@@ -147,7 +145,6 @@ VPC Interface Endpoint、ALB、ECS Fargateなどは稼働時間に応じて課�
 
 - [アーキテクチャと設計判断](docs/architecture.md)
 - [セキュリティ設計](docs/security.md)
-- [構築・運用・削除手順](docs/operations.md)
 - [コスト管理](docs/cost.md)
 
 ## 今後の改善候補
