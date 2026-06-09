@@ -1,525 +1,159 @@
 # AWS Platform Portfolio
 
-## 概要
+AWS上にコンテナアプリケーション基盤を構築するTerraformポートフォリオです。
 
-このリポジトリは、AWS上にコンテナアプリケーション基盤をTerraformで構築するポートフォリオです。
+Node.js APIをDocker化してAmazon ECRへ登録し、Private Subnet上のECS Fargateで実行します。外部公開の入口はApplication Load Balancerに限定し、GitHub ActionsからOIDC認証を使ってデプロイします。
 
-主目的は、アプリケーション開発ではなく、AWS上でコンテナ実行基盤を設計、構築、検証、削除できることを示すことです。
+このリポジトリでは、インフラの設計・構築だけでなく、CI/CD、監視、コスト管理、疎通確認、`terraform destroy` による削除までを一連の運用として実装・検証しています。
 
-## ポートフォリオ説明
+## 構成図
 
-このポートフォリオでは、Node.js APIをDocker化し、Amazon ECRへ登録し、ECS Fargate上で実行します。
-外部公開はApplication Load Balancerに限定し、ECS TaskはPrivate Subnetに配置します。
+![AWSコンテナ基盤の構成図](docs/assets/architecture-overview.png)
 
-Private SubnetからECRとCloudWatch Logsへ到達するために、NAT GatewayではなくVPC Endpointを使います。
-これにより、Private Subnet構成を維持しながら、学習用環境としてコストを抑えたコンテナ基盤を構築しています。
+ネットワーク境界、通信経路、各リソースの役割は [アーキテクチャと設計判断](docs/architecture.md) にまとめています。
 
-CI/CDはGitHub Actionsで構成し、AWS認証には長期Access KeyではなくOIDCを使います。
-Deploy workflowは手動実行に限定し、ECR pushとECS Service更新を行います。
+## 技術的な特徴
 
-運用面では、CloudWatch Logs、CloudWatch Alarm、ECR Lifecycle Policy、AWS Budgetsを導入し、検証後は `terraform destroy` で全リソースを削除する方針にしています。
-
-このリポジトリで示すスキルは以下です。
-
-- TerraformによるInfrastructure as Code
-- VPC / Public Subnet / Private Subnetのネットワーク設計
-- Security Groupによる通信制御
-- Docker化したNode.js APIのECR登録
-- ECS Fargateによるコンテナ実行
-- ALBによるHTTP公開とヘルスチェック
-- VPC EndpointによるPrivate SubnetからのAWSサービス到達
-- GitHub Actions OIDCによる長期Access Keyを使わないデプロイ
-- 検証後に `terraform destroy` で削除できる運用
-- AWS Budgetsによる月額コスト監視
-
-## 最終確認済みの実行フロー
-
-以下の流れで、作成、デプロイ、疎通確認、削除まで確認済みです。
-
-```text
-1. terraform init / fmt / validate
-2. terraform apply
-3. GitHub Actions Deploy workflowを手動実行
-4. ECRへDocker image push
-5. ECS Serviceをforce new deployment
-6. ECS Taskをdesired_count = 1で起動
-7. ALB Target Groupのhealthy確認
-8. ALB経由で /health のHTTP 200確認
-9. terraform destroy
-10. terraform plan -destroyで残リソースなし確認
-11. terraform state listでstateが空であることを確認
-```
-
-代表的な確認コマンド:
-
-```bash
-cd infra/environments/dev
-terraform init
-terraform fmt -recursive ../..
-terraform validate
-terraform apply
-```
-
-Deploy workflow実行後、API疎通確認時だけECS Taskを1台起動します。
-
-```bash
-terraform apply -auto-approve -var ecs_desired_count=1
-curl http://$(terraform output -raw alb_dns_name)/health
-```
-
-確認後はリソースを削除します。
-
-```bash
-terraform destroy
-terraform plan -destroy
-terraform state list
-```
-
-最終確認では、`/health` がHTTP 200を返し、destroy後にTerraform管理リソースが残っていないことを確認しています。
-
-## このポートフォリオで証明すること
-
-このリポジトリでは、単にAWSリソースを作るだけでなく、コンテナアプリケーションを安全に公開し、検証後に削除できる一連の流れを示しています。
-
-| 観点 | 内容 |
+| 観点 | 実装内容 |
 | --- | --- |
-| IaC | Terraform moduleでネットワーク、セキュリティ、ECS、VPC Endpoint、GitHub Actions OIDCを分割して管理 |
-| ネットワーク設計 | ALBをPublic Subnet、ECS TaskをPrivate Subnetに配置し、外部公開の入口をALBに限定 |
-| セキュリティ | Security Groupで `Internet -> ALB -> ECS` の通信経路を制限し、GitHub ActionsはOIDCでAWSへ認証、ECS Task Execution Roleは必要なECR/Logs権限に限定 |
-| コンテナ基盤 | Docker imageをECRへ登録し、ECS Fargateで起動、ALB Target Groupのhealth checkで正常性を確認 |
-| 運用 | CloudWatch Logs確認、CloudWatch Alarm、ECS desired countの切り替え、`terraform destroy` による削除まで手順化 |
-| コスト管理 | 学習用dev環境では通常 `desired_count = 0` とし、NAT GatewayではなくVPC Endpointを採用 |
+| Infrastructure as Code | Terraform moduleでネットワーク、セキュリティ、ECS、VPC Endpoint、OIDC、Budgetsを分割 |
+| ネットワーク | ALBをPublic Subnet、ECS TaskをPrivate Subnetへ配置 |
+| 通信制御 | Security Groupで `Internet -> ALB -> ECS` の経路とECSのアウトバウンドを制限 |
+| コンテナ基盤 | Docker imageをECRへ登録し、ECS Fargateで実行 |
+| Private接続 | ECSからECR、S3、CloudWatch Logsへの接続にVPC Endpointを使用 |
+| CI/CD | GitHub Actionsで検証し、手動Deploy workflowからECR pushとECS更新を実行 |
+| AWS認証 | 長期Access Keyを保存せず、GitHub Actions OIDCでAWS Roleを引き受け |
+| IAM | ECS Task Execution RoleとGitHub Actions Roleを用途別に最小権限化 |
+| 監視 | CloudWatch Logs、ALB 5xx Alarm、unhealthy host Alarmを実装 |
+| コスト管理 | AWS Budgets、ECR Lifecycle Policy、通常時 `desired_count = 0`、検証後のdestroyを採用 |
 
-面接やレビューでは、以下を説明できることを重視しています。
+## 主な設計判断
 
-- なぜECS TaskをPrivate Subnetに置くのか
-- なぜALBだけをPublic Subnetに置くのか
-- なぜNAT GatewayではなくVPC Endpointを使うのか
-- なぜGitHub Actionsに長期Access Keyを置かずOIDCを使うのか
-- なぜ検証後に `terraform destroy` する運用にしているのか
+### ALBのみを外部公開
 
-## 構成
+ECS TaskはPrivate Subnetに配置し、インターネットから直接アクセスできない構成にしています。外部公開の入口をALBに限定することで、アプリケーションへの通信経路を制御します。
 
-```mermaid
-flowchart TB
-  user["User / Browser"]
+### VPC Endpointを採用
 
-  subgraph aws["AWS ap-northeast-1"]
-    subgraph vpc["VPC 10.0.0.0/16"]
-      subgraph public["Public Subnets"]
-        alb["Application Load Balancer\nHTTP :80"]
-      end
+Private Subnet上のECS TaskがECRからイメージを取得し、CloudWatch Logsへログを送信できるよう、ECR API、ECR Docker、CloudWatch LogsのInterface EndpointとS3 Gateway Endpointを構成しています。
 
-      subgraph private["Private Subnets"]
-        ecs["ECS Fargate Service\nTask desired_count 0 or 1"]
-        app["Dockerized Node.js API\nContainer :3000"]
-      end
+本構成では、アクセス先をAWSサービスに限定し、NAT Gatewayを使用しない設計を選択しています。実際のコストは稼働時間、AZ数、通信量によって比較が必要です。
 
-      subgraph endpoints["VPC Endpoints"]
-        ecr_api["ECR API\nInterface Endpoint"]
-        ecr_dkr["ECR Docker\nInterface Endpoint"]
-        logs_ep["CloudWatch Logs\nInterface Endpoint"]
-        s3_ep["S3\nGateway Endpoint"]
-      end
-    end
+### OIDCによるデプロイ
 
-    ecr["Amazon ECR\nDocker Image Repository"]
-    logs["CloudWatch Logs"]
-    iam["IAM Role\nGitHub Actions OIDC"]
-  end
+GitHub Actionsには長期Access Keyを保存しません。OIDCで、このリポジトリの `main` ブランチだけが引き受けられるIAM Roleを使用します。
 
-  github["GitHub Actions\nValidate / Deploy"]
+### 短時間検証後に削除
 
-  user -->|"HTTP :80"| alb
-  alb -->|"HTTP :3000"| ecs
-  ecs --> app
-
-  github -->|"OIDC assume role"| iam
-  github -->|"docker push"| ecr
-  github -->|"update-service"| ecs
-  ecs -->|"pull image"| ecr_dkr
-  ecs -->|"ECR auth/API"| ecr_api
-  ecs -->|"image layers"| s3_ep
-  ecs -->|"application logs"| logs_ep
-
-  ecr_dkr --> ecr
-  ecr_api --> ecr
-  logs_ep --> logs
-```
-
-ECSタスクはPrivate Subnetに配置し、外部から直接アクセスできない構成にしています。
-外部公開の入口はPublic Subnet上のALBに限定しています。
-
-Private Subnet上のECSタスクがECRからイメージをpullし、CloudWatch Logsへログを送信できるように、NAT GatewayではなくVPC Endpointを利用しています。
+学習用dev環境のため、ECS Serviceは通常 `desired_count = 0` とします。疎通確認時だけTaskを起動し、確認後は `terraform destroy` でAWSリソースを削除します。
 
 ## 使用技術
 
-- AWS
-- Terraform
-- Docker
-- Amazon ECR
-- Amazon ECS Fargate
-- Application Load Balancer
-- VPC Endpoint
-- CloudWatch Logs
-- Node.js
-- Express
+- AWS: VPC、ECR、ECS Fargate、ALB、IAM、VPC Endpoint、CloudWatch、AWS Budgets
+- Infrastructure as Code: Terraform
+- CI/CD: GitHub Actions、OIDC
+- Application: Node.js、Express
+- Container: Docker
 
-## ディレクトリ構成
+## 実行方法
 
-```text
-.
-├── .github/
-│   └── workflows/
-│       ├── deploy.yml
-│       └── validate.yml
-├── app/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── src/
-│       └── index.js
-├── docs/
-│   ├── architecture.md
-│   ├── cost.md
-│   ├── operations.md
-│   └── security.md
-└── infra/
-    ├── environments/
-    │   └── dev/
-    │       ├── main.tf
-    │       ├── outputs.tf
-    │       ├── terraform.tfvars.example
-    │       └── variables.tf
-    └── modules/
-        ├── ecs/
-        ├── endpoints/
-        ├── github_oidc/
-        ├── budgets/
-        ├── network/
-        └── security/
-```
+前提:
 
-## アプリケーション
+- Terraform、Docker、AWS CLIが利用できる
+- AWS SSO / IAM Identity Centerで認証済み
+- `infra/environments/dev/terraform.tfvars` を設定済み
 
-検証用のNode.js APIを用意しています。
-
-エンドポイント:
-
-- `GET /`
-- `GET /health`
-
-`/health` はALBのヘルスチェックでも利用します。
-
-## ローカル実行
-
-```bash
-cd app
-npm install
-npm start
-```
-
-確認:
-
-```bash
-curl http://localhost:3000/health
-```
-
-## Docker実行
-
-```bash
-cd app
-docker build -t aws-platform-api .
-docker run --rm -p 3000:3000 aws-platform-api
-```
-
-確認:
-
-```bash
-curl http://localhost:3000/health
-```
-
-## Terraform
-
-dev環境のTerraformは以下にあります。
+Terraformを初期化・検証し、AWS基盤を作成します。
 
 ```bash
 cd infra/environments/dev
-```
-
-初期化:
-
-```bash
 terraform init
-```
-
-フォーマット:
-
-```bash
 terraform fmt -recursive ../..
-```
-
-検証:
-
-```bash
 terraform validate
-```
-
-差分確認:
-
-```bash
 terraform plan
-```
-
-作成:
-
-```bash
 terraform apply
 ```
 
-削除:
+GitHub ActionsのDeploy workflowを手動実行した後、ECS Taskを1台起動して疎通確認します。
+
+```bash
+terraform apply -auto-approve -var ecs_desired_count=1
+curl http://$(terraform output -raw alb_dns_name)/health
+```
+
+確認後はAWSリソースを削除し、Terraform管理リソースが残っていないことを確認します。
 
 ```bash
 terraform destroy
-```
-
-削除後の確認:
-
-```bash
 terraform plan -destroy
 terraform state list
 ```
 
-`terraform plan -destroy` が `No changes`、`terraform state list` が空であれば、Terraform管理下のリソースは残っていません。
+詳しい構築・運用手順は [運用ドキュメント](docs/operations.md) を参照してください。
 
-## CI
+## CI/CD
 
-GitHub Actionsで以下の検証を行います。
+### Validate workflow
 
-- Node.js依存関係のインストール
-- アプリケーション構文チェック
+push時に以下を自動検証します。
+
+- Node.js依存関係のインストールと構文チェック
 - Docker image build
 - Terraform format check
-- Terraform init
-- Terraform validate
+- Terraform init / validate
 
-push時のAWS自動デプロイは行いません。
-AWSへの反映は、手動実行用のDeploy workflowを明示的に起動した場合だけ行います。
+### Deploy workflow
 
-手動実行用のDeploy workflowでは、以下を行います。
+意図しないAWS課金を避けるため、手動実行に限定しています。
 
-- GitHub OIDCでAWSへ認証
-- Docker image build
+- GitHub Actions OIDCでAWSへ認証
+- Docker imageをビルド
 - ECRへ `latest` とcommit SHA tagをpush
 - ECS Serviceをforce new deployment
 
-Deploy workflowを使う前に、TerraformでAWS基盤とGitHub Actions OIDC Roleを作成しておく必要があります。
+## 検証結果
 
-```bash
-cd infra/environments/dev
-terraform apply
-```
-
-GitHub repository variablesへ以下を設定します。
-
-- `AWS_ROLE_ARN`
-- `AWS_REGION`
-- `ECR_REPOSITORY`
-- `ECS_CLUSTER`
-- `ECS_SERVICE`
-
-このリポジトリでは学習後に `terraform destroy` でAWSリソースを削除する運用にしています。
-destroy後はGitHub Actions OIDC Roleも削除されるため、Deploy workflowを再実行する前に再度 `terraform apply` が必要です。
-
-## ECSタスク起動確認
-
-この構成では、Fargateの不要な課金を避けるため、dev環境のECS Serviceは通常 `desired_count = 0` にしています。
-
-API疎通を確認する場合のみ、一時的にタスクを1台起動します。
-
-```bash
-terraform apply -auto-approve -var ecs_desired_count=1
-```
-
-ALB DNS名を確認します。
-
-```bash
-terraform output -raw alb_dns_name
-```
-
-ALB経由でAPIを確認します。
-
-```bash
-curl http://$(terraform output -raw alb_dns_name)/health
-```
-
-確認後はタスク数を0に戻します。
-
-```bash
-terraform apply -auto-approve
-```
-
-## ログ確認
-
-ECS/Fargate上のアプリケーションログはCloudWatch Logsへ出力します。
-
-ロググループ:
-
-```text
-/ecs/aws-platform-portfolio-dev-api
-```
-
-確認手順は [運用](docs/operations.md) にまとめています。
-
-ログ確認では、以下を確認します。
-
-- ECS Taskが起動したか
-- アプリケーションが起動時にエラーを出していないか
-- ALB経由のリクエストがAPIまで到達しているか
-- image pullや権限エラーが発生していないか
-
-## 監視
-
-CloudWatch Alarmで以下を監視します。
-
-- ALBが生成したHTTP 5xxレスポンス
-- Target Groupに登録されたunhealthy host
-
-dev環境は通常 `desired_count = 0` のため、ECS Taskが0台であること自体は異常として監視しません。
-通知先SNSは環境ごとのメール確認が必要になるため、現時点ではAlarm本体のみTerraformで管理します。
-
-SNS通知は現時点では追加しません。
-このdev環境は短時間検証後に `terraform destroy` する前提であり、常時稼働サービスとして即時通知を受ける段階ではないためです。
-想定外の課金検知はAWS Budgetsのメール通知を優先し、CloudWatch AlarmのSNS通知は常時稼働や本番想定に近づける段階で追加します。
-
-## コスト監視
-
-AWS Budgetsで月額コストを監視できるようにしています。
-
-Budgetは個人のメールアドレスへ通知するため、デフォルトでは無効です。
-有効化する場合は `terraform.tfvars` に以下を設定します。
-
-```hcl
-enable_budget             = true
-budget_monthly_limit_usd  = "5"
-budget_notification_email = "your-email@example.com"
-```
-
-この構成ではBudget ActionsとBudget Reportsは使いません。
-月額コストのBudget通知だけを使い、想定外の課金に気づくための最低限の設定にしています。
-
-## 設計上のポイント
-
-### Public / Private Subnet分離
-
-ALBはPublic Subnetに配置し、ECSタスクはPrivate Subnetに配置しています。
-
-これにより、外部公開する入口をALBに限定し、アプリケーション本体への直接アクセスを防ぎます。
-
-### Security Group制御
-
-通信は以下のように制限しています。
-
-```text
-Internet -> ALB : TCP 80
-ALB -> ECS Task : TCP 3000
-ECS Task -> Interface VPC Endpoint : TCP 443
-ECS Task -> S3 prefix list : TCP 443
-```
-
-ECSタスクはALBからの通信のみ受ける設計です。
-ECSタスクのアウトバウンドも `0.0.0.0/0 all traffic` ではなく、ECR / CloudWatch Logs用のInterface VPC Endpointと、ECR image layer取得で必要になるS3 prefix listへのHTTPS通信に絞っています。
-
-### IAM権限の最小化
-
-ECS Task Execution Roleは、AWS管理ポリシーではなくTerraformで定義したカスタムポリシーを使います。
-
-許可する操作は以下に限定しています。
-
-- ECR認証トークン取得
-- このアプリケーション用ECR Repositoryからのimage pull
-- このアプリケーション用CloudWatch Log Groupへのログ出力
-
-GitHub Actions Deploy Roleも、OIDCの引き受け元をこのリポジトリの `main` ブランチに限定し、ECR pushとECS Service更新に必要な権限だけを付与しています。
-
-### VPC Endpoint
-
-Private Subnet上のECSタスクがECRとCloudWatch Logsへ到達するため、以下を作成しています。
-
-- ECR API Interface Endpoint
-- ECR Docker Interface Endpoint
-- CloudWatch Logs Interface Endpoint
-- S3 Gateway Endpoint
-
-NAT Gatewayはコストが高くなりやすいため、今回の学習用構成では採用していません。
-
-### ECR削除
-
-ECRリポジトリ内にDockerイメージが残っていると、通常は `terraform destroy` で削除に失敗します。
-
-このリポジトリでは、学習環境を確実に削除できるように以下を設定しています。
-
-```hcl
-force_delete = true
-```
-
-また、不要なDocker imageが増え続けないようにLifecycle Policyを設定しています。
-
-- untagged imageは1日後に削除
-- tagged imageは直近10個を保持
-
-## 実施済みの検証
-
-- Terraform `fmt`
-- Terraform `init`
-- Terraform `validate`
-- Terraform `plan`
-- Terraform `apply`
-- Docker image build
-- ECR push
-- ECS Fargate task起動
-- ALB Target Group health check
-- ALB経由の `/health` 疎通確認
-- CloudWatch Logsへの実ログ出力確認
-- ECS desired countを0へ戻す運用
-- `terraform destroy`
-- GitHub Actionsによる検証CI
-- GitHub Actions OIDC IAM Role module
-- GitHub Actions OIDC IAM Role作成
-- GitHub ActionsによるECR push / ECS deploy workflow成功
-- destroy済み状態からの最終再作成・Deploy・疎通確認成功
-- destroy後にTerraform管理リソースが残っていないことの確認
-- CloudWatch AlarmによるALB 5xx / unhealthy host監視
-- AWS Budgetsによる月額コスト監視
-- ECS Task Execution Roleの権限最小化
-- ECS Task Security Groupのアウトバウンド制御見直し
-
-最終確認結果:
+以下の一連の流れを実環境で確認済みです。
 
 | 項目 | 結果 |
 | --- | --- |
+| Terraform fmt / init / validate / plan | 成功 |
 | Terraform apply | 成功 |
+| GitHub Actions Validate workflow | 成功 |
+| GitHub Actions Deploy workflow | 成功 |
+| Docker image build / ECR push | 成功 |
+| ECS Fargate Task起動 | 成功 |
+| ALB Target Group health check | healthy |
+| ALB経由の `/health` | HTTP 200 |
+| CloudWatch Logsへのログ出力 | 成功 |
+| CloudWatch Alarm作成 | 成功 |
 | AWS Budgets作成 | 成功 |
 | ECR Lifecycle Policy作成 | 成功 |
-| CloudWatch Alarm作成 | 成功 |
-| GitHub Actions Deploy workflow | 成功 |
-| ECR push | 成功 |
-| ECS deploy | 成功 |
-| ECS Task起動 | 成功 |
-| ALB Target Group healthy | 成功 |
-| ALB `/health` 疎通 | HTTP 200 |
 | Terraform destroy | 成功 |
-| destroy後の残リソース確認 | `No changes` |
+| destroy後の残リソース確認 | `No changes` / stateが空 |
+
+## コストと削除方針
+
+- AWS Budgetsの通知上限は月額5 USDを想定
+- ECS Taskは通常 `desired_count = 0`
+- Deploy workflowは手動実行
+- ECRのuntagged imageは1日後に削除
+- tagged imageは直近10個を保持
+- 検証完了後は `terraform destroy`
+
+VPC Interface Endpoint、ALB、ECS Fargateなどは稼働時間に応じて課金されます。構成を作成する前に [コストドキュメント](docs/cost.md) を確認してください。
 
 ## 関連ドキュメント
 
-- [アーキテクチャ](docs/architecture.md)
-- [セキュリティ](docs/security.md)
-- [コスト](docs/cost.md)
-- [運用](docs/operations.md)
+- [アーキテクチャと設計判断](docs/architecture.md)
+- [セキュリティ設計](docs/security.md)
+- [構築・運用・削除手順](docs/operations.md)
+- [コスト管理](docs/cost.md)
 
 ## 今後の改善候補
 
-- ECS Execの検討
 - HTTPS化
-- WAF追加
-- RDSをPrivate Subnetに追加
+- デプロイ後の自動ヘルスチェック
+- ECS Execの導入検討
+- WAFの追加
+- Private SubnetへのRDS追加
