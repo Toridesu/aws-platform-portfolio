@@ -105,6 +105,8 @@ moduleを責務ごとに分割し、環境固有値は `environments/dev` から
 - Terraformによる作成・再作成・削除
 - GitHub Actions OIDCによるAWS認証
 - GitHub ActionsからのECR pushとECS Service更新
+- Deploy workflowによるALB経由の `/health` 自動確認
+- Deploy workflow終了後にECS Taskが0台へ戻ることの確認
 - ECS Fargate Task起動
 - ALB Target Groupのhealthy確認
 - ALB経由の `/health` HTTP 200確認

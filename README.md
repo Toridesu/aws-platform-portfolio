@@ -74,12 +74,7 @@ terraform plan
 terraform apply
 ```
 
-GitHub ActionsのDeploy workflowを手動実行した後、ECS Taskを1台起動して疎通確認します。
-
-```bash
-terraform apply -auto-approve -var ecs_desired_count=1
-curl http://$(terraform output -raw alb_dns_name)/health
-```
+GitHub ActionsのDeploy workflowを手動実行します。workflowがDocker imageのpush、ECS Taskの一時起動、ALB経由の `/health` 確認、ECS Taskの停止までを実行します。
 
 確認後はAWSリソースを削除し、Terraform管理リソースが残っていないことを確認します。
 
@@ -124,7 +119,8 @@ push時に以下を自動検証します。
 | Docker image build / ECR push | 成功 |
 | ECS Fargate Task起動 | 成功 |
 | ALB Target Group health check | healthy |
-| ALB経由の `/health` | HTTP 200 |
+| Deploy workflowによるALB経由の `/health` 自動確認 | HTTP 200 |
+| Deploy workflow終了後のECS Task停止 | desired / running / pendingすべて0 |
 | CloudWatch Logsへのログ出力 | 成功 |
 | CloudWatch Alarm作成 | 成功 |
 | AWS Budgets作成 | 成功 |
@@ -136,7 +132,7 @@ push時に以下を自動検証します。
 
 - AWS Budgetsの通知上限は月額5 USDを想定
 - ECS Taskは通常 `desired_count = 0`
-- Deploy workflowは手動実行
+- Deploy workflowは手動実行し、終了時にECS Taskを0台へ戻す
 - ECRのuntagged imageは1日後に削除
 - tagged imageは直近10個を保持
 - 検証完了後は `terraform destroy`
