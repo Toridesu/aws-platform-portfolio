@@ -105,6 +105,15 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "ecs:UpdateService"
         ]
         Resource = var.ecs_service_arn
+      },
+      {
+        Sid    = "DescribeApplicationLoadBalancer"
+        Effect = "Allow"
+        Action = [
+          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeTargetGroups"
+        ]
+        Resource = "*"
       }
     ]
   })

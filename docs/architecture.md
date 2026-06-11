@@ -78,7 +78,7 @@ Private Subnet上のECS TaskがECRからimageを取得し、CloudWatch Logsへ�
 
 GitHub ActionsはOIDCで一時認証情報を取得します。信頼対象をこのリポジトリの `main` ブランチに限定し、Deploy RoleにはECR pushと既存ECS Service更新に必要な権限だけを付与しています。
 
-Deploy workflowは意図しないAWS反映と課金を避けるため、手動実行に限定しています。
+Deploy workflowは意図しないAWS反映と課金を避けるため、手動実行に限定しています。実行時はECS Taskを1台起動し、Serviceの安定化とALB経由の `/health` を確認した後、成功・失敗に関係なくTaskを0台へ戻します。
 
 ### 削除可能なdev環境
 

@@ -36,7 +36,7 @@ dev環境のデフォルトは以下です。
 ecs_desired_count = 0
 ```
 
-疎通確認時だけ1台起動します。Taskを0台に戻してもALBやInterface VPC Endpointの課金は残るため、検証終了後は環境全体をdestroyします。
+Deploy workflowは疎通確認時だけTaskを1台起動し、自動ヘルスチェックの成功・失敗に関係なく0台へ戻します。Taskを0台に戻してもALBやInterface VPC Endpointの課金は残るため、検証終了後は環境全体をdestroyします。
 
 ### NAT Gatewayを使用しない
 

@@ -55,6 +55,7 @@ OIDCの信頼条件を対象GitHubリポジトリの `main` ブランチに限�
 
 - 対象ECR Repositoryへのimage push
 - 対象ECS Cluster / Serviceの参照と更新
+- 自動ヘルスチェックに必要なALB / Target Group情報の参照
 
 Terraform apply用の広い権限はGitHub Actionsへ付与していません。
 

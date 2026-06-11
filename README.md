@@ -107,7 +107,9 @@ push時に以下を自動検証します。
 - GitHub Actions OIDCでAWSへ認証
 - Docker imageをビルド
 - ECRへ `latest` とcommit SHA tagをpush
-- ECS Serviceをforce new deployment
+- ECS Taskを1台起動してforce new deployment
+- ECS Serviceの安定化後、ALB経由で `/health` を自動確認
+- 成功・失敗に関係なくECS Taskを0台へ戻す
 
 ## 検証結果
 
